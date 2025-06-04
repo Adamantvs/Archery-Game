@@ -866,9 +866,9 @@ function Enemy({ position, enemy }: { position: number[], enemy: any }) {
       
       // Wandering logic - pick new target every 2-5 seconds
       if (Date.now() > nextTargetTime) {
-        // Define castle area bounds (around castle at [0, 0, -30])
-        const castleX = 0 + (Math.random() - 0.5) * 20  // -10 to 10 around castle
-        const castleZ = -30 + (Math.random() - 0.5) * 15  // -37.5 to -22.5 around castle
+        // Define castle area bounds (around castle at [0, 0, -30]) - larger radius
+        const castleX = 0 + (Math.random() - 0.5) * 50  // -25 to 25 around castle
+        const castleZ = -30 + (Math.random() - 0.5) * 40  // -50 to -10 around castle
         
         setTargetPosition(new THREE.Vector3(castleX, 0.5, castleZ))
         setNextTargetTime(Date.now() + 2000 + Math.random() * 3000) // 2-5 seconds
