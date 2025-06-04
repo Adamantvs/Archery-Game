@@ -561,8 +561,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
 
       <Sky 
         sunPosition={dragon && dragon.active ? [100, 10, 100] : [100, 20, 100]}
-        turbidity={dragon && dragon.active ? 20 : 10}
-        rayleigh={dragon && dragon.active ? 0.5 : 6}
+        turbidity={dragon && dragon.active ? 20 : 2}
+        rayleigh={dragon && dragon.active ? 0.5 : 2}
         mieCoefficient={dragon && dragon.active ? 0.1 : 0.005}
         mieDirectionalG={dragon && dragon.active ? 0.95 : 0.8}
       />

@@ -53,6 +53,7 @@ Dragon Boss Final Boss System - Enhanced with User Feedback
 - ✅ Added menacing red sky effect when dragon appears (lower sun, higher turbidity)
 - ✅ Updated UI to show enemy kill progress (5/5) instead of total score target
 - ✅ Added clear win instruction: "Defeat the dragon to WIN!"
+- ✅ Fixed sky to be blue with clouds before dragon (reduced turbidity from 10 to 2)
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
