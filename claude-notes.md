@@ -10,9 +10,11 @@
 - c653b53 feat: fix enemy death explosions, add castle collision detection, and ensure proper regeneration
 - f51bc8e feat: enhance enemies with angry faces, increased speed, more crates, and explosive damage
 - f34b13b feat: redesign crossbow with high-tech tactical aesthetics
+- f4b6f7d feat: add flying bat-winged enemies with player detection and pursuit
+- 8ab4bce feat: implement player health system with damage mechanics and game over
 
 ## Current Task
-Completed comprehensive archery game enhancements.
+Completed full-featured archery survival game.
 
 ## Progress
 - ✅ Increased enemy wandering radius for more dynamic gameplay
@@ -28,6 +30,13 @@ Completed comprehensive archery game enhancements.
 - ✅ Added 9 additional bomb crates (14 total) positioned closer to enemy patrol areas
 - ✅ Implemented crate explosion damage system that kills enemies within 6-unit radius
 - ✅ Redesigned crossbow with high-tech tactical aesthetics including rails, scopes, energy effects, and modern styling
+- ✅ Added detailed bat wings with animated flapping motion and bone structures
+- ✅ Implemented 3D flying mechanics allowing vertical movement up to 4 meters
+- ✅ Added player detection system that triggers at 15-unit radius for enemy pursuit
+- ✅ Enemies now follow and pursue players when detected, moving 1.5x faster with aerial positioning
+- ✅ Implemented player health system with animated health bar UI (100 HP, color-coded)
+- ✅ Added enemy collision damage (10 HP per hit) and explosion damage (5-30 HP based on distance)
+- ✅ Created game over screen with restart functionality and survival gameplay mechanics
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth

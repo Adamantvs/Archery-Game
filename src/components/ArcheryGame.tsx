@@ -8,17 +8,28 @@ import * as THREE from "three"
 export default function ArcheryGame() {
   const [isLocked, setIsLocked] = useState(false)
   const [playerHealth, setPlayerHealth] = useState(100)
+  const [score, setScore] = useState(0)
 
   return (
     <div className="w-full h-screen relative">
       <Canvas shadows camera={{ fov: 75, near: 0.1, far: 1000, position: [0, 2, 5] }}>
-        <Game setIsLocked={setIsLocked} playerHealth={playerHealth} setPlayerHealth={setPlayerHealth} />
+        <Game setIsLocked={setIsLocked} playerHealth={playerHealth} setPlayerHealth={setPlayerHealth} score={score} setScore={setScore} />
       </Canvas>
 
       {/* UI Overlay */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Health Bar */}
-        <div className="absolute top-4 right-4">
+        {/* Health Bar and Score */}
+        <div className="absolute top-4 right-4 space-y-3">
+          {/* Score Display */}
+          <div className="bg-black bg-opacity-70 p-3 rounded-lg">
+            <div className="text-white text-sm font-bold mb-1">SCORE</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-400">{score}</div>
+              <div className="text-xs text-gray-300">/ 10 to win</div>
+            </div>
+          </div>
+          
+          {/* Health Bar */}
           <div className="bg-black bg-opacity-70 p-3 rounded-lg">
             <div className="text-white text-sm font-bold mb-1">HEALTH</div>
             <div className="w-48 h-4 bg-gray-800 rounded-full overflow-hidden border-2 border-gray-600">
@@ -42,12 +53,30 @@ export default function ArcheryGame() {
           </div>
         </div>
 
+        {/* Victory Screen */}
+        {score >= 10 && (
+          <div className="absolute inset-0 bg-green-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
+            <div className="text-center text-white">
+              <h1 className="text-6xl font-bold mb-4 text-green-300">VICTORY!</h1>
+              <p className="text-xl mb-6">You have defeated 10 flying demons and saved the castle!</p>
+              <div className="text-4xl font-bold text-yellow-400 mb-6">Final Score: {score}</div>
+              <button 
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
+                onClick={() => window.location.reload()}
+              >
+                Play Again
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Game Over Screen */}
         {playerHealth <= 0 && (
           <div className="absolute inset-0 bg-red-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
               <h1 className="text-6xl font-bold mb-4 text-red-300">GAME OVER</h1>
               <p className="text-xl mb-6">You have been defeated by the flying demons!</p>
+              <div className="text-2xl font-bold text-yellow-400 mb-6">Final Score: {score}</div>
               <button 
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
                 onClick={() => window.location.reload()}
@@ -76,7 +105,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth }: { setIsLocked: (locked: boolean) => void, playerHealth: number, setPlayerHealth: (health: number) => void }) {
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: { setIsLocked: (locked: boolean) => void, playerHealth: number, setPlayerHealth: (health: number) => void, score: number, setScore: (score: number) => void }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
@@ -109,9 +138,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth }: { setIsLocked: (lo
     setBombs(initialBombs)
 
     const initialEnemies = [
-      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 3 + Math.random() * 2, currentPosition: [-8, 0.5, -25] },
-      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 3 + Math.random() * 2, currentPosition: [8, 0.5, -28] },
-      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 3 + Math.random() * 2, currentPosition: [0, 0.5, -35] },
+      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 5 + Math.random() * 3, currentPosition: [-8, 0.5, -25] },
+      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 5 + Math.random() * 3, currentPosition: [8, 0.5, -28] },
+      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 5 + Math.random() * 3, currentPosition: [0, 0.5, -35] },
     ]
     setEnemies(initialEnemies)
   }, [])
@@ -215,8 +244,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth }: { setIsLocked: (lo
                       },
                     ])
 
-                    // Deactivate enemy
+                    // Deactivate enemy and increment score
                     setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+                    setScore(prev => prev + 1)
 
                     // Respawn enemy after 10 seconds at a random castle position
                     setTimeout(() => {
@@ -304,8 +334,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth }: { setIsLocked: (lo
                 },
               ])
 
-              // Deactivate enemy
+              // Deactivate enemy and increment score
               setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+              setScore(prev => prev + 1)
 
               // Remove arrow
               setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
@@ -1218,12 +1249,28 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
       
       // AI behavior based on player detection
       if (isFollowingPlayer && playerPosition) {
-        // Follow player behavior
+        // Aggressive follow behavior - fly low to attack player
         const playerTarget = playerPosition.clone()
-        // Fly higher when following player
-        playerTarget.y += 2 + Math.sin(state.clock.elapsedTime + enemy.id) * 1
+        const distanceToPlayer = currentPosition.distanceTo(playerPosition)
+        
+        // Add unpredictable movement patterns
+        const time = state.clock.elapsedTime + enemy.id
+        const randomOffset = new THREE.Vector3(
+          Math.sin(time * 2) * 2,
+          0,
+          Math.cos(time * 1.5) * 2
+        )
+        playerTarget.add(randomOffset)
+        
+        // Fly lower when close to player for attacking
+        if (distanceToPlayer < 8) {
+          playerTarget.y = playerPosition.y + 0.5 + Math.sin(time * 4) * 0.5 // Very low, aggressive diving
+        } else {
+          playerTarget.y = playerPosition.y + 1.5 + Math.sin(time * 3) * 1 // Medium height when approaching
+        }
+        
         setTargetPosition(playerTarget)
-        setTargetHeight(2 + Math.sin(state.clock.elapsedTime + enemy.id) * 1)
+        setTargetHeight(playerTarget.y)
       } else {
         // Normal wandering behavior with random height changes
         if (Date.now() > nextTargetTime) {
@@ -1259,7 +1306,21 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
       
       if (direction.length() > 0.5) {
         direction.normalize()
-        const moveSpeed = isFollowingPlayer ? enemy.moveSpeed * 1.5 : enemy.moveSpeed // Faster when following
+        
+        // Much faster and more aggressive when following player
+        const moveSpeed = isFollowingPlayer ? enemy.moveSpeed * 2.5 : enemy.moveSpeed
+        
+        // Add erratic movement when following player
+        if (isFollowingPlayer) {
+          const erraticTime = state.clock.elapsedTime * 3 + enemy.id
+          const erraticOffset = new THREE.Vector3(
+            Math.sin(erraticTime) * 0.3,
+            Math.cos(erraticTime * 1.2) * 0.2,
+            Math.sin(erraticTime * 0.8) * 0.3
+          )
+          direction.add(erraticOffset).normalize()
+        }
+        
         const moveVector = direction.multiplyScalar(moveSpeed * delta)
         const newPosition = currentPosition.clone().add(moveVector)
         
