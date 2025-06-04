@@ -137,12 +137,12 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
 
             if (distance < 1.0) {
               // Collision threshold for enemy
-              // Create dramatic pop effect
+              // Create dramatic pop effect at actual enemy position
               setEnemyPops((prev) => [
                 ...prev,
                 {
                   id: Date.now(),
-                  position: enemy.position,
+                  position: enemy.currentPosition || enemy.position,
                   createdAt: Date.now(),
                 },
               ])
@@ -155,13 +155,51 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
 
               // Respawn enemy after 10 seconds at a random castle position
               setTimeout(() => {
-                const newX = (Math.random() - 0.5) * 20  // Random position around castle
-                const newZ = -30 + (Math.random() - 0.5) * 15
+                // Find a valid spawn position that doesn't collide with castle
+                let spawnX, spawnZ
+                let validSpawn = false
+                let attempts = 0
+                
+                // Castle collision check function (inline for respawn)
+                const checkSpawnCollision = (x: number, z: number) => {
+                  // Main tower collision
+                  const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+                  if (mainTowerDistance < 3.5) return true
+                  
+                  // Side towers collision
+                  const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+                  if (leftTowerDistance < 2.5) return true
+                  const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+                  if (rightTowerDistance < 2.5) return true
+                  
+                  // Front wall collision
+                  if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+                  
+                  return false
+                }
+                
+                while (!validSpawn && attempts < 20) {
+                  spawnX = (Math.random() - 0.5) * 50  // Random position around castle (larger area)
+                  spawnZ = -30 + (Math.random() - 0.5) * 40
+                  
+                  if (!checkSpawnCollision(spawnX, spawnZ)) {
+                    validSpawn = true
+                  }
+                  attempts++
+                }
+                
+                // If no valid spawn found, use a safe default position
+                if (!validSpawn) {
+                  spawnX = (Math.random() - 0.5) * 20 > 0 ? 15 : -15
+                  spawnZ = -45
+                }
+                
                 setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
                   ...e, 
                   active: true, 
-                  position: [newX, 0.5, newZ],
-                  targetPosition: [newX, 0.5, newZ]
+                  position: [spawnX, 0.5, spawnZ],
+                  currentPosition: [spawnX, 0.5, spawnZ],
+                  targetPosition: [spawnX, 0.5, spawnZ]
                 } : e)))
               }, 10000)
             }
@@ -876,6 +914,29 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
   const [targetPosition, setTargetPosition] = useState(new THREE.Vector3(...position))
   const [nextTargetTime, setNextTargetTime] = useState(Date.now() + Math.random() * 3000)
 
+  // Castle collision detection function
+  const checkCastleCollision = (pos: THREE.Vector3) => {
+    const x = pos.x
+    const z = pos.z
+    
+    // Main tower collision (center [0, 0, -30], radius 3.5 with buffer)
+    const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+    if (mainTowerDistance < 3.5) return true
+    
+    // Left side tower collision (center [-6, 0, -30], radius 2.5 with buffer)
+    const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+    if (leftTowerDistance < 2.5) return true
+    
+    // Right side tower collision (center [6, 0, -30], radius 2.5 with buffer)
+    const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+    if (rightTowerDistance < 2.5) return true
+    
+    // Front wall collision (x: -7 to 7, z: -27.5 to -26.5 with buffer)
+    if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+    
+    return false
+  }
+
   // Wandering AI and bobbing animation
   useFrame((state, delta) => {
     if (enemyRef.current && enemy.active) {
@@ -884,11 +945,26 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
       
       // Wandering logic - pick new target every 2-5 seconds
       if (Date.now() > nextTargetTime) {
-        // Define castle area bounds (around castle at [0, 0, -30]) - larger radius
-        const castleX = 0 + (Math.random() - 0.5) * 50  // -25 to 25 around castle
-        const castleZ = -30 + (Math.random() - 0.5) * 40  // -50 to -10 around castle
+        let attempts = 0
+        let validTarget = false
+        let castleX, castleZ
         
-        setTargetPosition(new THREE.Vector3(castleX, 0.5, castleZ))
+        // Try to find a valid target that doesn't collide with castle
+        while (!validTarget && attempts < 10) {
+          // Define castle area bounds (around castle at [0, 0, -30]) - larger radius
+          castleX = 0 + (Math.random() - 0.5) * 50  // -25 to 25 around castle
+          castleZ = -30 + (Math.random() - 0.5) * 40  // -50 to -10 around castle
+          
+          const testTarget = new THREE.Vector3(castleX, 0.5, castleZ)
+          if (!checkCastleCollision(testTarget)) {
+            validTarget = true
+          }
+          attempts++
+        }
+        
+        if (validTarget) {
+          setTargetPosition(new THREE.Vector3(castleX, 0.5, castleZ))
+        }
         setNextTargetTime(Date.now() + 2000 + Math.random() * 3000) // 2-5 seconds
       }
       
@@ -900,8 +976,18 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
         direction.normalize()
         const moveVector = direction.multiplyScalar(enemy.moveSpeed * delta)
         const newPosition = currentPosition.clone().add(moveVector)
-        setCurrentPosition(newPosition)
-        onPositionUpdate([newPosition.x, newPosition.y, newPosition.z])
+        
+        // Check for castle collision before moving
+        if (!checkCastleCollision(newPosition)) {
+          setCurrentPosition(newPosition)
+          onPositionUpdate([newPosition.x, newPosition.y, newPosition.z])
+        } else {
+          // If collision detected, pick a new target away from castle
+          const escapeX = currentPosition.x > 0 ? currentPosition.x + 5 : currentPosition.x - 5
+          const escapeZ = currentPosition.z > -30 ? currentPosition.z + 5 : currentPosition.z - 5
+          setTargetPosition(new THREE.Vector3(escapeX, 0.5, escapeZ))
+          setNextTargetTime(Date.now() + 1000) // Try new target soon
+        }
       }
       
       // Update enemy position
