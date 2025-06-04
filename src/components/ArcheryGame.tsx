@@ -618,17 +618,19 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               // Deactivate all enemies
               setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
               
-              setDragon(null)
+              // Set dragon to dying state instead of removing immediately
+              setDragon(prev => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
               setScore(prev => prev + 10) // Big score bonus for dragon
               
               // Show small victory message immediately
               setShowVictoryMessage(true)
               
-              // Hide small message and show full victory screen after 6 seconds
+              // Remove dragon after falling animation (4 seconds) and show victory
               setTimeout(() => {
+                setDragon(null)
                 setShowVictoryMessage(false)
                 setDragonDefeated(true)
-              }, 6000)
+              }, 4000)
               
             } else {
               setDragon(prev => ({ ...prev, health: newHealth }))
@@ -871,14 +873,17 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               })
               
               setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
-              setDragon(null)
+              // Set dragon to dying state instead of removing immediately
+              setDragon(prev => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
               setScore(prev => prev + 20) // Bigger bonus for rocket dragon kill
               
               setShowVictoryMessage(true)
+              // Remove dragon after falling animation (4 seconds) and show victory
               setTimeout(() => {
+                setDragon(null)
                 setShowVictoryMessage(false)
                 setDragonDefeated(true)
-              }, 6000)
+              }, 4000)
               
             } else {
               setDragon(prev => ({ ...prev, health: newHealth }))
@@ -2486,6 +2491,22 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         newPosition[1] += direction.y * delta  
         newPosition[2] += direction.z * delta
       }
+    } else if (dragon.phase === 'dying') {
+      // Dramatic falling death animation
+      const fallSpeed = 12 // Fast fall
+      const rotationSpeed = 4 // Spinning while falling
+      
+      // Fall straight down with gravity
+      newPosition[1] -= fallSpeed * delta
+      
+      // Add slight forward momentum and wobble
+      newPosition[0] += Math.sin(state.clock.elapsedTime * 3) * 2 * delta
+      newPosition[2] += Math.cos(state.clock.elapsedTime * 2) * 1.5 * delta
+      
+      // Stop falling when hitting ground
+      if (newPosition[1] <= 0) {
+        newPosition[1] = 0
+      }
     }
 
     setCurrentPosition(newPosition)
@@ -2494,13 +2515,20 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     // Update visual position
     dragonRef.current.position.set(...newPosition)
     
-    // Face towards player
-    if (playerPosition) {
-      dragonRef.current.lookAt(playerPosition)
+    // Handle dragon orientation based on phase
+    if (dragon.phase === 'dying') {
+      // Dramatic spinning while falling
+      dragonRef.current.rotation.x += 3 * delta
+      dragonRef.current.rotation.y += 4 * delta
+      dragonRef.current.rotation.z += 2 * delta
+    } else {
+      // Face towards player when alive
+      if (playerPosition) {
+        dragonRef.current.lookAt(playerPosition)
+      }
+      // Vertical bobbing motion when alive
+      dragonRef.current.position.y += Math.sin(bobOffset) * 0.5
     }
-
-    // Vertical bobbing motion
-    dragonRef.current.position.y += Math.sin(bobOffset) * 0.5
   })
 
   return (
@@ -2728,17 +2756,71 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         )
       })}
 
-      {/* Health indicator above dragon */}
-      <group position={[0, 6, 0]}>
-        <mesh>
-          <planeGeometry args={[4, 0.5]} />
-          <meshStandardMaterial color="#FF0000" transparent opacity={0.8} />
-        </mesh>
-        <mesh position={[0, 0, 0.01]} scale={[dragon.health / 5, 1, 1]}>
-          <planeGeometry args={[4, 0.5]} />
-          <meshStandardMaterial color="#00FF00" transparent opacity={0.9} />
-        </mesh>
-      </group>
+      {/* Health indicator above dragon - only show when alive */}
+      {dragon.phase !== 'dying' && (
+        <group position={[0, 6, 0]}>
+          <mesh>
+            <planeGeometry args={[4, 0.5]} />
+            <meshStandardMaterial color="#FF0000" transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[0, 0, 0.01]} scale={[dragon.health / 5, 1, 1]}>
+            <planeGeometry args={[4, 0.5]} />
+            <meshStandardMaterial color="#00FF00" transparent opacity={0.9} />
+          </mesh>
+        </group>
+      )}
+      
+      {/* Dramatic falling smoke trail when dying */}
+      {dragon.phase === 'dying' && (
+        <group>
+          {Array.from({ length: 8 }).map((_, i) => {
+            const offset = i * 0.5
+            return (
+              <mesh 
+                key={i} 
+                position={[
+                  Math.sin(bobOffset * 2 + i) * 1, 
+                  offset,
+                  Math.cos(bobOffset * 1.5 + i) * 1
+                ]}
+              >
+                <sphereGeometry args={[0.3, 6, 6]} />
+                <meshStandardMaterial 
+                  color={i % 2 === 0 ? "#444444" : "#FF4500"}
+                  emissive={i % 2 === 0 ? "#222222" : "#FF2200"}
+                  emissiveIntensity={0.8}
+                  transparent 
+                  opacity={0.7 - i * 0.1}
+                />
+              </mesh>
+            )
+          })}
+          
+          {/* Additional fire particles */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const angle = (i / 12) * Math.PI * 2
+            return (
+              <mesh 
+                key={`fire-${i}`} 
+                position={[
+                  Math.cos(angle + wingFlap) * 2, 
+                  Math.sin(wingFlap + i) * 1,
+                  Math.sin(angle + wingFlap) * 2
+                ]}
+              >
+                <sphereGeometry args={[0.15, 4, 4]} />
+                <meshStandardMaterial 
+                  color="#FF6600"
+                  emissive="#FF4400"
+                  emissiveIntensity={1.5}
+                  transparent 
+                  opacity={0.8}
+                />
+              </mesh>
+            )
+          })}
+        </group>
+      )}
     </group>
   )
 }
