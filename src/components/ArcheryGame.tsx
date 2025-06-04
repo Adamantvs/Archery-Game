@@ -124,19 +124,7 @@ export default function ArcheryGame() {
           </div>
         )}
 
-        {/* Dragon Entrance Warning */}
-        {dragonEntering && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-            <div className="text-center">
-              <div className="bg-black bg-opacity-90 p-8 rounded-lg border-4 border-red-600 shadow-2xl animate-pulse">
-                <h1 className="text-6xl font-bold text-red-400 mb-4 animate-bounce">⚠️ WARNING ⚠️</h1>
-                <h2 className="text-4xl font-bold text-red-300 mb-3">ANCIENT EVIL AWAKENS</h2>
-                <p className="text-2xl text-white mb-2">The realm trembles...</p>
-                <p className="text-xl text-yellow-400">Prepare for the ultimate challenge!</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed dramatic entrance warning - keeping only subtle dragon warning */}
 
         {/* Dragon Warning */}
         {showDragonWarning && (
@@ -904,61 +892,55 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     return () => clearInterval(interval)
   }, [])
 
-  // Dramatic dragon entrance sequence after 5 kills
+  // Dragon entrance sequence after 5 kills (simplified)
   useEffect(() => {
     if (killCount >= 5 && !dragonSpawned) {
       setDragonSpawned(true)
       
-      // Step 1: Show dramatic entrance warning (3 seconds)
-      setDragonEntering(true)
+      // Show subtle dragon warning and spawn immediately
+      setShowDragonWarning(true)
       
-      // Step 2: Hide entrance warning and trigger sky change + dragon spawn (after 3 seconds)
-      setTimeout(() => {
-        setDragonEntering(false)
-        setShowDragonWarning(true)
-        
-        // Spawn dragon dramatically from high above
-        setDragon({
-          id: 'dragon',
-          position: [0, 50, -60], // Start much higher for dramatic entrance
-          health: 5,
-          active: true,
-          attackTimer: 0,
-          currentPosition: [0, 50, -60],
-          targetPosition: [0, 15, -60], // Will descend to normal height
-          phase: 'entering' // new phase for entrance
-        })
-        
-        // Add dramatic entrance explosions
-        setExplosions((prev) => [
-          ...prev,
-          {
-            id: Date.now() + 1000,
-            position: [0, 45, -60],
-            createdAt: Date.now(),
-          },
-          {
-            id: Date.now() + 1001,
-            position: [-10, 40, -55],
-            createdAt: Date.now() + 500,
-          },
-          {
-            id: Date.now() + 1002,
-            position: [10, 40, -55],
-            createdAt: Date.now() + 1000,
-          },
-        ])
-      }, 3000)
+      // Spawn dragon dramatically from high above
+      setDragon({
+        id: 'dragon',
+        position: [0, 50, -60], // Start much higher for dramatic entrance
+        health: 5,
+        active: true,
+        attackTimer: 0,
+        currentPosition: [0, 50, -60],
+        targetPosition: [0, 15, -60], // Will descend to normal height
+        phase: 'entering' // new phase for entrance
+      })
       
-      // Step 3: Hide dragon warning after entrance is complete (after 7 seconds total)
+      // Add dramatic entrance explosions
+      setExplosions((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1000,
+          position: [0, 45, -60],
+          createdAt: Date.now(),
+        },
+        {
+          id: Date.now() + 1001,
+          position: [-10, 40, -55],
+          createdAt: Date.now() + 500,
+        },
+        {
+          id: Date.now() + 1002,
+          position: [10, 40, -55],
+          createdAt: Date.now() + 1000,
+        },
+      ])
+      
+      // Hide dragon warning after entrance is complete (after 4 seconds)
       setTimeout(() => {
         setShowDragonWarning(false)
-      }, 7000)
+      }, 4000)
       
-      // Step 4: Transition dragon from entering to circling phase (after 6 seconds - during descent)
+      // Transition dragon from entering to circling phase (after 3 seconds)
       setTimeout(() => {
         setDragon(prev => prev ? { ...prev, phase: 'circling' } : null)
-      }, 6000)
+      }, 3000)
     }
   }, [killCount, dragonSpawned])
 
@@ -2620,9 +2602,9 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
       // Fall straight down with gravity in slow motion
       newPosition[1] -= fallSpeed * delta
       
-      // Add slight forward momentum and wobble
-      newPosition[0] += Math.sin(state.clock.elapsedTime * 2) * 1 * delta
-      newPosition[2] += Math.cos(state.clock.elapsedTime * 1.5) * 0.8 * delta
+      // Add very slight drift to keep fall natural but stable
+      newPosition[0] += Math.sin(state.clock.elapsedTime * 1) * 0.3 * delta
+      newPosition[2] += Math.cos(state.clock.elapsedTime * 0.8) * 0.2 * delta
       
       // Check for ground collision and trigger explosion
       if (newPosition[1] <= 2 && dragon.phase === 'dying') {
@@ -2640,10 +2622,10 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     
     // Handle dragon orientation based on phase
     if (dragon.phase === 'dying') {
-      // Dramatic slow-motion spinning while falling
-      dragonRef.current.rotation.x += 1.5 * delta
-      dragonRef.current.rotation.y += 2 * delta
-      dragonRef.current.rotation.z += 1 * delta
+      // Gentle tumbling while falling (keep structure intact)
+      dragonRef.current.rotation.x += 0.8 * delta
+      dragonRef.current.rotation.y += 1 * delta
+      dragonRef.current.rotation.z += 0.5 * delta
     } else {
       // Face towards player when alive
       if (playerPosition) {

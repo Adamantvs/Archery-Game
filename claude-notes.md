@@ -15,7 +15,7 @@
 - 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
 
 ## Current Task
-Enhanced dragon death sequence with slow motion and ground explosion
+Refined dragon entrance and death animations
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
@@ -140,6 +140,14 @@ Enhanced dragon death sequence with slow motion and ground explosion
 - ✅ **Massive Ground Explosion**: 7 explosions (1 main + 6 scattered) when dragon hits ground
 - ✅ **Extended Timing**: Victory screen appears 2 seconds after ground impact (vs immediate)
 - ✅ **Dramatic Sequence**: Fall → Ground Impact → Explosions → Victory (much more cinematic)
+
+## Dragon Animation Refinements
+- ✅ **Removed Dramatic Entrance Warning**: Eliminated full-screen "ANCIENT EVIL AWAKENS" message
+- ✅ **Kept Subtle Warning**: Maintained top banner "DRAGON BOSS AWAKENED" message
+- ✅ **Simplified Timing**: Dragon spawns immediately with 4s warning, 3s descent timing
+- ✅ **Fixed Dragon Structure**: Reduced rotation speeds during fall to prevent "falling apart" effect
+- ✅ **Stable Fall**: Reduced wobble from 1-2 units to 0.2-0.3 units for smooth descent
+- ✅ **Gentle Tumbling**: Rotation speeds reduced by ~60% for natural fall without chaos
 
 ## Instructions for Future Sessions
 If starting fresh, reread the project:init-app command contents in the command history to understand the initialization workflow.
