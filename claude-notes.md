@@ -1,36 +1,41 @@
 # Claude Code Session Notes
 
-## Session Info
-- Start commit: 40428ba (Initial commit)
-- Current step: Integrating existing archery game into template
-- Working on archery game improvement
+## Session Status
+**Current Step**: Step 1 - Requirements Gathering (New Initialization)
+**Starting Commit**: 9c8c551 (feat: integrate 3D archery game)
 
-## Current Status
-Step 1: Requirements Gathering - COMPLETED
-- User has existing archery game built with React Three Fiber
-- Game features: 3D crossbow shooting, bomb targets, explosions, medieval environment
-- Goal: Integrate and improve the existing game
+## Session Commits
+- None yet
 
-## Archery Game Analysis
-- Built with React Three Fiber, @react-three/drei
-- Features: First-person crossbow, arrow physics, bomb targets, explosions
-- Environment: Medieval setting with castle, trees, ground
-- Controls: WASD movement, mouse aim, click to shoot, spacebar jump
-- Physics: Gravity on arrows, collision detection with targets
+## Current Task
+Initializing new application - gathering requirements from user about what they want to build.
 
-## Completed Steps
-1. ✅ Installed React Three Fiber dependencies (three, @react-three/fiber, @react-three/drei)
-2. ✅ Removed template line from CLAUDE.md
-3. ✅ Created ArcheryGame component with proper TypeScript types
-4. ✅ Integrated game into main route (replaces demo content)
-5. ✅ Started dev servers - frontend running on localhost:5173
-
-## Next Steps
-- Test game functionality in browser
-- Identify potential improvements (scoring, sound effects, multiplayer features)
-- Consider adding game state persistence with Convex
+## Progress
+- Created todo list for initialization process
+- Updated claude-notes.md (this file)
+- User provided updated ArcheryGame.tsx with enhanced features
+- Added enemy AI system - enemies wander around castle area
+- Increased forest from 80 to 120 trees for denser environment
+- Added sprint functionality (Hold Shift key for 2x movement speed)
+- Added enemy collision detection and pop effects
+- Next: Test implementation
 
 ## Important Context
-- This is archery game integration, not fresh template
-- Need Three.js, @react-three/fiber, @react-three/drei dependencies
-- Game code provided is complete 3D implementation
+- Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
+- Current state has a 3D archery game integrated (from previous session)
+- Need to understand if user wants to keep archery game or build something different
+- Will need to remove demo content and implement MVP based on user requirements
+
+## Previous Session Summary (Reference Only)
+- Had integrated a 3D archery game with React Three Fiber
+- Game features: crossbow shooting, bomb targets, explosions, medieval environment
+- Dependencies: three, @react-three/fiber, @react-three/drei
+
+## Next Steps
+1. Ask user what they want to build
+2. Get clarifying questions about core functionality and target users
+3. Document responses and update CLAUDE.md
+4. Plan and implement MVP
+
+## Instructions for Future Sessions
+If starting fresh, reread the project:init-app command contents in the command history to understand the initialization workflow.

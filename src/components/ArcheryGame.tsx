@@ -32,7 +32,8 @@ export default function ArcheryGame() {
             <p className="text-xs">Mouse: Aim</p>
             <p className="text-xs">WASD: Move</p>
             <p className="text-xs">Spacebar: Jump</p>
-            <p className="text-xs mt-2">Shoot the bomb crates to make them explode!</p>
+            <p className="text-xs">Hold Shift: Sprint</p>
+            <p className="text-xs mt-2">Shoot the bomb crates and enemies!</p>
           </div>
         )}
       </div>
@@ -45,6 +46,8 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
   const [explosions, setExplosions] = useState<any[]>([])
+  const [enemies, setEnemies] = useState<any[]>([])
+  const [enemyPops, setEnemyPops] = useState<any[]>([])
   const controlsRef = useRef<any>()
 
   // Initialize bombs
@@ -57,6 +60,13 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
       { id: 5, position: [0, 1.5, -20], active: true },
     ]
     setBombs(initialBombs)
+
+    const initialEnemies = [
+      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 1 + Math.random() },
+      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 1 + Math.random() },
+      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 1 + Math.random() },
+    ]
+    setEnemies(initialEnemies)
   }, [])
 
   const handleShoot = () => {
@@ -112,18 +122,59 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
             }
           }
         })
+
+        // Check enemy collisions
+        enemies.forEach((enemy) => {
+          if (enemy.active) {
+            const distance = new THREE.Vector3(...enemy.position).distanceTo(arrow.position)
+
+            if (distance < 0.8) {
+              // Collision threshold for enemy
+              // Create dramatic pop effect
+              setEnemyPops((prev) => [
+                ...prev,
+                {
+                  id: Date.now(),
+                  position: enemy.position,
+                  createdAt: Date.now(),
+                },
+              ])
+
+              // Deactivate enemy
+              setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+
+              // Remove arrow
+              setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+
+              // Respawn enemy after 10 seconds at a random castle position
+              setTimeout(() => {
+                const newX = (Math.random() - 0.5) * 20  // Random position around castle
+                const newZ = -30 + (Math.random() - 0.5) * 15
+                setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                  ...e, 
+                  active: true, 
+                  position: [newX, 0.5, newZ],
+                  targetPosition: [newX, 0.5, newZ]
+                } : e)))
+              }, 10000)
+            }
+          }
+        })
       })
     }
 
     checkCollisions()
-  }, [arrows, bombs])
+  }, [arrows, bombs, enemies])
 
-  // Clean up old explosions
+  // Clean up old explosions and enemy pops
   useEffect(() => {
     const explosionDuration = 2000 // 2 seconds
+    const popDuration = 3000 // 3 seconds for dramatic effect
+    
     const interval = setInterval(() => {
       const now = Date.now()
       setExplosions((prev) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
+      setEnemyPops((prev) => prev.filter((pop) => now - pop.createdAt < popDuration))
     }, 500)
 
     return () => clearInterval(interval)
@@ -175,9 +226,17 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
       {/* Render bombs */}
       {bombs.map((bomb) => bomb.active && <BombTarget key={bomb.id} position={bomb.position} />)}
 
+      {/* Render enemies */}
+      {enemies.map((enemy) => enemy.active && <Enemy key={enemy.id} position={enemy.position} enemy={enemy} />)}
+
       {/* Render explosions */}
       {explosions.map((explosion) => (
         <Explosion key={explosion.id} position={explosion.position} />
+      ))}
+
+      {/* Render enemy pop effects */}
+      {enemyPops.map((pop) => (
+        <EnemyPop key={pop.id} position={pop.position} />
       ))}
 
       {arrows.map((arrow) => (
@@ -430,13 +489,15 @@ function Player() {
 
     direction.current.set(0, 0, 0)
 
-    // Movement
+    // Movement with sprint
     if (keys.current["KeyW"]) direction.current.z -= 1
     if (keys.current["KeyS"]) direction.current.z += 1
     if (keys.current["KeyA"]) direction.current.x -= 1
     if (keys.current["KeyD"]) direction.current.x += 1
 
-    direction.current.normalize().multiplyScalar(speed * delta)
+    // Apply sprint multiplier if Shift is held
+    const sprintMultiplier = keys.current["ShiftLeft"] || keys.current["ShiftRight"] ? 2 : 1
+    direction.current.normalize().multiplyScalar(speed * sprintMultiplier * delta)
     direction.current.applyEuler(camera.rotation)
     direction.current.y = 0
 
@@ -691,9 +752,9 @@ function Ground() {
 function Forest() {
   const trees = useMemo(() => {
     const treePositions: [number, number, number][] = []
-    // Increased number of trees from 40 to 80
-    for (let i = 0; i < 80; i++) {
-      const angle = (i / 80) * Math.PI * 2
+    // Increased number of trees to 120
+    for (let i = 0; i < 120; i++) {
+      const angle = (i / 120) * Math.PI * 2
       const radius = 15 + Math.random() * 40 // Increased radius range
       const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 15
       const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 15
@@ -786,6 +847,257 @@ function Castle() {
         <boxGeometry args={[14, 4, 1]} />
         <meshStandardMaterial color="#696969" roughness={0.9} />
       </mesh>
+    </group>
+  )
+}
+
+function Enemy({ position, enemy }: { position: number[], enemy: any }) {
+  const enemyRef = useRef<THREE.Group>(null)
+  const [bobOffset, setBobOffset] = useState(0)
+  const [currentPosition, setCurrentPosition] = useState(new THREE.Vector3(...position))
+  const [targetPosition, setTargetPosition] = useState(new THREE.Vector3(...position))
+  const [nextTargetTime, setNextTargetTime] = useState(Date.now() + Math.random() * 3000)
+
+  // Wandering AI and bobbing animation
+  useFrame((state, delta) => {
+    if (enemyRef.current && enemy.active) {
+      // Bobbing animation
+      setBobOffset((prev) => prev + delta * 3)
+      
+      // Wandering logic - pick new target every 2-5 seconds
+      if (Date.now() > nextTargetTime) {
+        // Define castle area bounds (around castle at [0, 0, -30])
+        const castleX = 0 + (Math.random() - 0.5) * 20  // -10 to 10 around castle
+        const castleZ = -30 + (Math.random() - 0.5) * 15  // -37.5 to -22.5 around castle
+        
+        setTargetPosition(new THREE.Vector3(castleX, 0.5, castleZ))
+        setNextTargetTime(Date.now() + 2000 + Math.random() * 3000) // 2-5 seconds
+      }
+      
+      // Move towards target
+      const direction = targetPosition.clone().sub(currentPosition)
+      direction.y = 0 // Keep on ground level
+      
+      if (direction.length() > 0.5) {
+        direction.normalize()
+        const moveVector = direction.multiplyScalar(enemy.moveSpeed * delta)
+        setCurrentPosition(prev => prev.clone().add(moveVector))
+      }
+      
+      // Update enemy position
+      enemyRef.current.position.copy(currentPosition)
+      enemyRef.current.position.y = 0.5 + Math.sin(bobOffset) * 0.1
+    }
+  })
+
+  return (
+    <group ref={enemyRef} position={position as [number, number, number]}>
+      {/* Enemy body - mushroom-like shape */}
+      <mesh position={[0, 0.3, 0]} castShadow>
+        <sphereGeometry args={[0.4, 16, 16]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+
+      {/* Enemy cap/head */}
+      <mesh position={[0, 0.6, 0]} castShadow>
+        <sphereGeometry args={[0.35, 16, 16]} />
+        <meshStandardMaterial color="#D2691E" roughness={0.7} />
+      </mesh>
+
+      {/* Enemy spots on cap */}
+      <mesh position={[-0.15, 0.7, 0.2]} castShadow>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0.1, 0.65, 0.25]} castShadow>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0.2, 0.75, -0.1]} castShadow>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+
+      {/* Enemy eyes */}
+      <mesh position={[-0.15, 0.5, 0.3]} castShadow>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+      <mesh position={[0.15, 0.5, 0.3]} castShadow>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+
+      {/* Enemy pupils */}
+      <mesh position={[-0.15, 0.52, 0.35]} castShadow>
+        <sphereGeometry args={[0.03, 6, 6]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position={[0.15, 0.52, 0.35]} castShadow>
+        <sphereGeometry args={[0.03, 6, 6]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+
+      {/* Enemy mouth */}
+      <mesh position={[0, 0.4, 0.35]} castShadow>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+
+      {/* Enemy feet */}
+      <mesh position={[-0.2, 0.05, 0.2]} castShadow>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial color="#654321" />
+      </mesh>
+      <mesh position={[0.2, 0.05, 0.2]} castShadow>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial color="#654321" />
+      </mesh>
+    </group>
+  )
+}
+
+function EnemyPop({ position }: { position: number[] }) {
+  const popRef = useRef<THREE.Group>(null)
+  const [scale, setScale] = useState(1)
+  const [opacity, setOpacity] = useState(1)
+  const [particles, setParticles] = useState<any[]>([])
+
+  // Initialize particles
+  useEffect(() => {
+    const initialParticles = Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * Math.PI * 2
+      const speed = 2 + Math.random() * 3
+      return {
+        id: i,
+        position: [0, 0, 0],
+        velocity: [Math.cos(angle) * speed, Math.random() * 4 + 2, Math.sin(angle) * speed],
+        color: i % 3 === 0 ? "#FF69B4" : i % 3 === 1 ? "#FFD700" : "#FF4500",
+        size: 0.1 + Math.random() * 0.2,
+      }
+    })
+    setParticles(initialParticles)
+  }, [])
+
+  // Dramatic pop animation
+  useFrame((state, delta) => {
+    if (popRef.current) {
+      // Initial dramatic expansion then shrink
+      const time = state.clock.elapsedTime
+      if (time < 0.2) {
+        // Quick expansion
+        setScale(1 + time * 15)
+      } else if (time < 0.4) {
+        // Dramatic shrink
+        setScale(4 - (time - 0.2) * 15)
+      } else {
+        // Fade out
+        setScale(0.5)
+        setOpacity((prev) => Math.max(prev - delta * 2, 0))
+      }
+
+      // Update particles
+      setParticles((prev) =>
+        prev.map((particle) => ({
+          ...particle,
+          position: [
+            particle.position[0] + particle.velocity[0] * delta,
+            particle.position[1] + particle.velocity[1] * delta,
+            particle.position[2] + particle.velocity[2] * delta,
+          ],
+          velocity: [
+            particle.velocity[0] * 0.98, // Air resistance
+            particle.velocity[1] - 9.8 * delta, // Gravity
+            particle.velocity[2] * 0.98,
+          ],
+        })),
+      )
+
+      // Rotate for dramatic effect
+      popRef.current.rotation.y += delta * 10
+      popRef.current.rotation.x += delta * 5
+    }
+  })
+
+  return (
+    <group position={position as [number, number, number]}>
+      {/* Dramatic flash light */}
+      <pointLight intensity={8} distance={15} color="#FF69B4" decay={2} />
+
+      {/* Main pop effect */}
+      <group ref={popRef}>
+        {/* Central burst */}
+        <mesh>
+          <sphereGeometry args={[0.3, 8, 8]} />
+          <meshStandardMaterial
+            color="#FF69B4"
+            emissive="#FF69B4"
+            emissiveIntensity={3}
+            transparent={true}
+            opacity={opacity}
+          />
+        </mesh>
+
+        {/* Outer ring */}
+        <mesh>
+          <torusGeometry args={[0.6, 0.1, 8, 16]} />
+          <meshStandardMaterial
+            color="#FFD700"
+            emissive="#FFD700"
+            emissiveIntensity={2}
+            transparent={true}
+            opacity={opacity * 0.8}
+          />
+        </mesh>
+
+        {/* Star burst effect */}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const angle = (i / 8) * Math.PI * 2
+          const x = Math.cos(angle) * 0.8
+          const z = Math.sin(angle) * 0.8
+
+          return (
+            <mesh key={i} position={[x, 0, z]} rotation={[0, angle, 0]}>
+              <coneGeometry args={[0.05, 0.4, 4]} />
+              <meshStandardMaterial
+                color="#FFFFFF"
+                emissive="#FFFFFF"
+                emissiveIntensity={2}
+                transparent={true}
+                opacity={opacity}
+              />
+            </mesh>
+          )
+        })}
+      </group>
+
+      {/* Flying particles */}
+      {particles.map((particle) => (
+        <mesh key={particle.id} position={particle.position as [number, number, number]}>
+          <sphereGeometry args={[particle.size, 6, 6]} />
+          <meshStandardMaterial
+            color={particle.color}
+            emissive={particle.color}
+            emissiveIntensity={1.5}
+            transparent={true}
+            opacity={opacity}
+          />
+        </mesh>
+      ))}
+
+      {/* Text effect "POP!" */}
+      <group position={[0, 1.5, 0]} scale={[scale * 0.5, scale * 0.5, scale * 0.5]}>
+        <mesh>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <meshStandardMaterial
+            color="#FFFFFF"
+            emissive="#FFFFFF"
+            emissiveIntensity={3}
+            transparent={true}
+            opacity={opacity}
+          />
+        </mesh>
+      </group>
     </group>
   )
 }
