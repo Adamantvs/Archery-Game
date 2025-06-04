@@ -32,13 +32,9 @@ export default function ArcheryGame() {
           setDragon={setDragon}
           dragonSpawned={dragonSpawned}
           setDragonSpawned={setDragonSpawned}
-          showDragonWarning={showDragonWarning}
           setShowDragonWarning={setShowDragonWarning}
-          dragonDefeated={dragonDefeated}
           setDragonDefeated={setDragonDefeated}
-          showVictoryMessage={showVictoryMessage}
           setShowVictoryMessage={setShowVictoryMessage}
-          dragonEntering={dragonEntering}
           setDragonEntering={setDragonEntering}
         />
       </Canvas>
@@ -158,7 +154,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning, dragonDefeated, setDragonDefeated, showVictoryMessage, setShowVictoryMessage, dragonEntering, setDragonEntering }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, setDragonEntering }: { 
   setIsLocked: (locked: boolean) => void, 
   playerHealth: number, 
   setPlayerHealth: (health: number) => void, 
@@ -170,13 +166,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   setDragon: (dragon: any) => void,
   dragonSpawned: boolean,
   setDragonSpawned: (spawned: boolean) => void,
-  showDragonWarning: boolean,
   setShowDragonWarning: (show: boolean) => void,
-  dragonDefeated: boolean,
   setDragonDefeated: (defeated: boolean) => void,
-  showVictoryMessage: boolean,
   setShowVictoryMessage: (show: boolean) => void,
-  dragonEntering: boolean,
   setDragonEntering: (entering: boolean) => void
 }) {
   const [arrows, setArrows] = useState<any[]>([])
@@ -294,7 +286,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
       trail: [startPosition.clone()],
     }
 
-    setArrows((prev) => [...prev, newArrow])
+    setArrows((prev: any[]) => [...prev, newArrow])
     setBowDrawn(true)
     setTimeout(() => setBowDrawn(false), 200)
   }
@@ -303,7 +295,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   const damagePlayer = (damage: number) => {
     const now = Date.now()
     if (now - lastDamageTime > 1000) { // 1 second damage cooldown
-      setPlayerHealth(prev => Math.max(0, prev - damage))
+      setPlayerHealth((prev: number) => Math.max(0, prev - damage))
       setLastDamageTime(now)
     }
   }
@@ -335,7 +327,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               // Collision threshold for crate
               // Create explosion
               const explosionPos = bomb.position
-              setExplosions((prev) => [
+              setExplosions((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now(),
@@ -364,7 +356,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                   
                   if (explosionDistance < 6.0) { // Explosion damage radius
                     // Create dramatic pop effect at enemy position
-                    setEnemyPops((prev) => [
+                    setEnemyPops((prev: any[]) => [
                       ...prev,
                       {
                         id: Date.now() + enemy.id,
@@ -374,14 +366,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                     ])
 
                     // Deactivate enemy and increment score and kill count
-                    setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
-                    setScore(prev => prev + 1)
-                    setKillCount(prev => prev + 1)
+                    setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+                    setScore((prev: number) => prev + 1)
+                    setKillCount((prev: number) => prev + 1)
 
                     // Respawn enemy after 10 seconds at a random castle position
                     setTimeout(() => {
                       // Find a valid spawn position that doesn't collide with castle
-                      let spawnX, spawnZ
+                      let spawnX: number, spawnZ: number
                       let validSpawn = false
                       let attempts = 0
                       
@@ -419,7 +411,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                         spawnZ = -45
                       }
                       
-                      setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                      setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { 
                         ...e, 
                         active: true, 
                         position: [spawnX, 0.5, spawnZ],
@@ -432,14 +424,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               })
 
               // Deactivate bomb
-              setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
+              setBombs((prev: any[]) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
 
               // Remove arrow
-              setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+              setArrows((prev: any[]) => prev.filter((a) => a.id !== arrow.id))
 
               // Regenerate bomb after 15 seconds
               setTimeout(() => {
-                setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
+                setBombs((prev: any[]) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
               }, 15000)
             }
           }
@@ -455,7 +447,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
             if (distance < 1.0) {
               // Collision threshold for enemy
               // Create dramatic pop effect at actual enemy position
-              setEnemyPops((prev) => [
+              setEnemyPops((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now(),
@@ -465,17 +457,17 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               ])
 
               // Deactivate enemy and increment score and kill count
-              setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
-              setScore(prev => prev + 1)
-              setKillCount(prev => prev + 1)
+              setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+              setScore((prev: number) => prev + 1)
+              setKillCount((prev: number) => prev + 1)
 
               // Remove arrow
-              setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+              setArrows((prev: any[]) => prev.filter((a) => a.id !== arrow.id))
 
               // Respawn enemy after 10 seconds at a random castle position
               setTimeout(() => {
                 // Find a valid spawn position that doesn't collide with castle
-                let spawnX, spawnZ
+                let spawnX: number, spawnZ: number
                 let validSpawn = false
                 let attempts = 0
                 
@@ -513,7 +505,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                   spawnZ = -45
                 }
                 
-                setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { 
                   ...e, 
                   active: true, 
                   position: [spawnX, 0.5, spawnZ],
@@ -532,7 +524,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
 
           if (distance < 2.0) { // Dragon is larger, bigger hit radius
             // Create dramatic explosion effect at dragon position
-            setExplosions((prev) => [
+            setExplosions((prev: any[]) => [
               ...prev,
               {
                 id: Date.now(),
@@ -548,7 +540,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               const dragonPos = dragon.currentPosition || dragon.position
               
               // Multiple massive explosions at dragon location
-              setExplosions((prev) => [
+              setExplosions((prev: any[]) => [
                 ...prev,
                 // Main dragon explosion
                 {
@@ -580,7 +572,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               ])
 
               // Massive dramatic dragon death effect
-              setEnemyPops((prev) => [
+              setEnemyPops((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now(),
@@ -592,7 +584,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               // Kill ALL remaining enemies simultaneously
               enemies.forEach((enemy) => {
                 if (enemy.active) {
-                  setEnemyPops((prev) => [
+                  setEnemyPops((prev: any[]) => [
                     ...prev,
                     {
                       id: Date.now() + enemy.id * 100,
@@ -604,11 +596,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               })
               
               // Deactivate all enemies
-              setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
+              setEnemies((prev: any[]) => prev.map(e => ({ ...e, active: false })))
               
               // Set dragon to dying state instead of removing immediately
-              setDragon(prev => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
-              setScore(prev => prev + 10) // Big score bonus for dragon
+              setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
+              setScore((prev: number) => prev + 10) // Big score bonus for dragon
               
               // Show small victory message immediately
               setShowVictoryMessage(true)
@@ -617,11 +609,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               // Dragon will explode when hitting ground and then show victory
               
             } else {
-              setDragon(prev => ({ ...prev, health: newHealth }))
+              setDragon((prev: any) => ({ ...prev, health: newHealth }))
             }
 
             // Remove arrow
-            setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+            setArrows((prev: any[]) => prev.filter((a) => a.id !== arrow.id))
           }
         }
       })
@@ -635,7 +627,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
             if (distance < 1.5) { // Rockets have larger hit radius
               // Create bigger explosion
               const explosionPos = bomb.position
-              setExplosions((prev) => [
+              setExplosions((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now(),
@@ -663,7 +655,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                   const explosionDistance = enemyPos.distanceTo(explosionVec)
                   
                   if (explosionDistance < 8.0) { // Larger explosion radius
-                    setEnemyPops((prev) => [
+                    setEnemyPops((prev: any[]) => [
                       ...prev,
                       {
                         id: Date.now() + enemy.id,
@@ -672,13 +664,13 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                       },
                     ])
 
-                    setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
-                    setScore(prev => prev + 1)
-                    setKillCount(prev => prev + 1)
+                    setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+                    setScore((prev: number) => prev + 1)
+                    setKillCount((prev: number) => prev + 1)
 
                     // Respawn enemy after 10 seconds
                     setTimeout(() => {
-                      let spawnX, spawnZ
+                      let spawnX: number, spawnZ: number
                       let validSpawn = false
                       let attempts = 0
                       
@@ -707,7 +699,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                         spawnZ = -45
                       }
                       
-                      setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                      setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { 
                         ...e, 
                         active: true, 
                         position: [spawnX, 0.5, spawnZ],
@@ -719,11 +711,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                 }
               })
 
-              setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
-              setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+              setBombs((prev: any[]) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
+              setRockets((prev: any[]) => prev.filter((r) => r.id !== rocket.id))
 
               setTimeout(() => {
-                setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
+                setBombs((prev: any[]) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
               }, 15000)
             }
           }
@@ -736,7 +728,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
             const distance = enemyPos.distanceTo(rocket.position)
 
             if (distance < 1.2) { // Rockets are easier to hit with
-              setEnemyPops((prev) => [
+              setEnemyPops((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now() + enemy.id,
@@ -745,14 +737,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                 },
               ])
 
-              setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
-              setScore(prev => prev + 2) // More points for rocket kills
-              setKillCount(prev => prev + 1)
-              setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+              setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+              setScore((prev: number) => prev + 2) // More points for rocket kills
+              setKillCount((prev: number) => prev + 1)
+              setRockets((prev: any[]) => prev.filter((r) => r.id !== rocket.id))
 
               // Respawn enemy
               setTimeout(() => {
-                let spawnX, spawnZ
+                let spawnX: number, spawnZ: number
                 let validSpawn = false
                 let attempts = 0
                 
@@ -781,7 +773,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                   spawnZ = -45
                 }
                 
-                setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                setEnemies((prev: any[]) => prev.map((e) => (e.id === enemy.id ? { 
                   ...e, 
                   active: true, 
                   position: [spawnX, 0.5, spawnZ],
@@ -800,7 +792,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
 
           if (distance < 3.0) { // Rockets are easier to hit dragon with
             // Multiple explosions for rocket hit
-            setExplosions((prev) => [
+            setExplosions((prev: any[]) => [
               ...prev,
               {
                 id: Date.now(),
@@ -821,7 +813,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               const dragonPos = dragon.currentPosition || dragon.position
               
               // Even more explosions for rocket kill
-              setExplosions((prev) => [
+              setExplosions((prev: any[]) => [
                 ...prev,
                 ...Array.from({ length: 8 }, (_, i) => ({
                   id: Date.now() + i * 10,
@@ -834,7 +826,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                 }))
               ])
 
-              setEnemyPops((prev) => [
+              setEnemyPops((prev: any[]) => [
                 ...prev,
                 {
                   id: Date.now(),
@@ -845,7 +837,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
 
               enemies.forEach((enemy) => {
                 if (enemy.active) {
-                  setEnemyPops((prev) => [
+                  setEnemyPops((prev: any[]) => [
                     ...prev,
                     {
                       id: Date.now() + enemy.id * 100,
@@ -856,20 +848,20 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
                 }
               })
               
-              setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
+              setEnemies((prev: any[]) => prev.map(e => ({ ...e, active: false })))
               // Set dragon to dying state instead of removing immediately
-              setDragon(prev => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
-              setScore(prev => prev + 20) // Bigger bonus for rocket dragon kill
+              setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
+              setScore((prev: number) => prev + 20) // Bigger bonus for rocket dragon kill
               
               setShowVictoryMessage(true)
               // Victory timing now handled by ground impact
               // Dragon will explode when hitting ground and then show victory
               
             } else {
-              setDragon(prev => ({ ...prev, health: newHealth }))
+              setDragon((prev: any) => ({ ...prev, health: newHealth }))
             }
 
-            setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+            setRockets((prev: any[]) => prev.filter((r) => r.id !== rocket.id))
           }
         }
       })
@@ -885,8 +877,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     
     const interval = setInterval(() => {
       const now = Date.now()
-      setExplosions((prev) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
-      setEnemyPops((prev) => prev.filter((pop) => now - pop.createdAt < popDuration))
+      setExplosions((prev: any[]) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
+      setEnemyPops((prev: any[]) => prev.filter((pop) => now - pop.createdAt < popDuration))
     }, 500)
 
     return () => clearInterval(interval)
@@ -913,7 +905,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
       })
       
       // Add dramatic entrance explosions
-      setExplosions((prev) => [
+      setExplosions((prev: any[]) => [
         ...prev,
         {
           id: Date.now() + 1000,
@@ -939,7 +931,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
       
       // Transition dragon from entering to circling phase (after 3 seconds)
       setTimeout(() => {
-        setDragon(prev => prev ? { ...prev, phase: 'circling' } : null)
+        setDragon((prev: any) => prev ? { ...prev, phase: 'circling' } : null)
       }, 3000)
     }
   }, [killCount, dragonSpawned])
@@ -964,7 +956,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
       life: 50
     }
 
-    setRockets((prev) => [...prev, newRocket])
+    setRockets((prev: any[]) => [...prev, newRocket])
     setBowDrawn(true)
     setTimeout(() => setBowDrawn(false), 100)
   }
@@ -1045,7 +1037,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           enemy={enemy} 
           playerPosition={controlsRef.current?.getObject()?.position}
           onPositionUpdate={(newPosition) => {
-            setEnemies(prev => prev.map(e => 
+            setEnemies((prev: any[]) => prev.map(e => 
               e.id === enemy.id ? { ...e, currentPosition: newPosition } : e
             ))
           }}
@@ -1059,9 +1051,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           playerPosition={controlsRef.current?.getObject()?.position}
           onPositionUpdate={(newPosition) => {
             // Check if this is a ground impact signal
-            if (Array.isArray(newPosition) && newPosition[3] === 'ground_impact') {
+            if (Array.isArray(newPosition) && newPosition.length > 3 && newPosition[3] === 'ground_impact') {
               // Create massive ground explosion
-              setExplosions((prev) => [
+              setExplosions((prev: any[]) => [
                 ...prev,
                 // Main ground explosion
                 {
@@ -1089,9 +1081,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               }, 2000) // 2 seconds after ground impact
               
               // Update position without the signal
-              setDragon(prev => prev ? { ...prev, currentPosition: [newPosition[0], newPosition[1], newPosition[2]] } : null)
+              setDragon((prev: any) => prev ? { ...prev, currentPosition: [newPosition[0], newPosition[1], newPosition[2]] } : null)
             } else {
-              setDragon(prev => prev ? { ...prev, currentPosition: newPosition } : null)
+              setDragon((prev: any) => prev ? { ...prev, currentPosition: newPosition } : null)
             }
           }}
         />
@@ -1112,10 +1104,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           key={arrow.id}
           arrow={arrow}
           onUpdate={(updatedArrow) => {
-            setArrows((prev) => prev.map((a) => (a.id === arrow.id ? updatedArrow : a)))
+            setArrows((prev: any[]) => prev.map((a) => (a.id === arrow.id ? updatedArrow : a)))
           }}
           onRemove={() => {
-            setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+            setArrows((prev: any[]) => prev.filter((a) => a.id !== arrow.id))
           }}
         />
       ))}
@@ -1126,10 +1118,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           key={rocket.id}
           rocket={rocket}
           onUpdate={(updatedRocket) => {
-            setRockets((prev) => prev.map((r) => (r.id === rocket.id ? updatedRocket : r)))
+            setRockets((prev: any[]) => prev.map((r) => (r.id === rocket.id ? updatedRocket : r)))
           }}
           onRemove={() => {
-            setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+            setRockets((prev: any[]) => prev.filter((r) => r.id !== rocket.id))
           }}
         />
       ))}
@@ -1274,8 +1266,8 @@ function Explosion({ position }: { position: number[] }) {
   useFrame((state, delta) => {
     if (explosionRef.current) {
       // Grow and fade out
-      setScale((prev) => Math.min(prev + delta * 5, 4))
-      setOpacity((prev) => Math.max(prev - delta * 0.8, 0))
+      setScale((prev: number) => Math.min(prev + delta * 5, 4))
+      setOpacity((prev: number) => Math.max(prev - delta * 0.8, 0))
 
       explosionRef.current.scale.set(scale, scale, scale)
 
@@ -2055,7 +2047,7 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
   useFrame((state, delta) => {
     if (enemyRef.current && enemy.active) {
       // Wing flapping animation
-      setBobOffset((prev) => prev + delta * 3)
+      setBobOffset((prev: number) => prev + delta * 3)
       
       // Check for player proximity (within 15 units)
       let playerDetected = false
@@ -2428,11 +2420,11 @@ function EnemyPop({ position }: { position: number[] }) {
       } else {
         // Fade out
         setScale(0.5)
-        setOpacity((prev) => Math.max(prev - delta * 2, 0))
+        setOpacity((prev: number) => Math.max(prev - delta * 2, 0))
       }
 
       // Update particles
-      setParticles((prev) =>
+      setParticles((prev: any[]) =>
         prev.map((particle) => ({
           ...particle,
           position: [
@@ -2548,9 +2540,9 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
   useFrame((state, delta) => {
     if (!dragonRef.current || !playerPosition) return
 
-    setBobOffset(prev => prev + delta * 2)
-    setWingFlap(prev => prev + delta * 8)
-    setAttackTimer(prev => prev + delta)
+    setBobOffset((prev: number) => prev + delta * 2)
+    setWingFlap((prev: number) => prev + delta * 8)
+    setAttackTimer((prev: number) => prev + delta)
 
     // Update dragon's current position based on phase
     let newPosition = [...currentPosition]
