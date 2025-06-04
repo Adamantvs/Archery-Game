@@ -62,9 +62,9 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
     setBombs(initialBombs)
 
     const initialEnemies = [
-      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 1 + Math.random() },
-      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 1 + Math.random() },
-      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 1 + Math.random() },
+      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 1 + Math.random(), currentPosition: [-8, 0.5, -25] },
+      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 1 + Math.random(), currentPosition: [8, 0.5, -28] },
+      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 1 + Math.random(), currentPosition: [0, 0.5, -35] },
     ]
     setEnemies(initialEnemies)
   }, [])
@@ -119,6 +119,11 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
 
               // Remove arrow
               setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+
+              // Regenerate bomb after 15 seconds
+              setTimeout(() => {
+                setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
+              }, 15000)
             }
           }
         })
@@ -126,9 +131,11 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
         // Check enemy collisions
         enemies.forEach((enemy) => {
           if (enemy.active) {
-            const distance = new THREE.Vector3(...enemy.position).distanceTo(arrow.position)
+            // Use the actual current position from the enemy's current state
+            const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
+            const distance = enemyPos.distanceTo(arrow.position)
 
-            if (distance < 0.8) {
+            if (distance < 1.0) {
               // Collision threshold for enemy
               // Create dramatic pop effect
               setEnemyPops((prev) => [
@@ -227,7 +234,18 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
       {bombs.map((bomb) => bomb.active && <BombTarget key={bomb.id} position={bomb.position} />)}
 
       {/* Render enemies */}
-      {enemies.map((enemy) => enemy.active && <Enemy key={enemy.id} position={enemy.position} enemy={enemy} />)}
+      {enemies.map((enemy) => enemy.active && (
+        <Enemy 
+          key={enemy.id} 
+          position={enemy.position} 
+          enemy={enemy} 
+          onPositionUpdate={(newPosition) => {
+            setEnemies(prev => prev.map(e => 
+              e.id === enemy.id ? { ...e, currentPosition: newPosition } : e
+            ))
+          }}
+        />
+      ))}
 
       {/* Render explosions */}
       {explosions.map((explosion) => (
@@ -851,7 +869,7 @@ function Castle() {
   )
 }
 
-function Enemy({ position, enemy }: { position: number[], enemy: any }) {
+function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enemy: any, onPositionUpdate: (position: number[]) => void }) {
   const enemyRef = useRef<THREE.Group>(null)
   const [bobOffset, setBobOffset] = useState(0)
   const [currentPosition, setCurrentPosition] = useState(new THREE.Vector3(...position))
@@ -881,7 +899,9 @@ function Enemy({ position, enemy }: { position: number[], enemy: any }) {
       if (direction.length() > 0.5) {
         direction.normalize()
         const moveVector = direction.multiplyScalar(enemy.moveSpeed * delta)
-        setCurrentPosition(prev => prev.clone().add(moveVector))
+        const newPosition = currentPosition.clone().add(moveVector)
+        setCurrentPosition(newPosition)
+        onPositionUpdate([newPosition.x, newPosition.y, newPosition.z])
       }
       
       // Update enemy position
@@ -892,67 +912,112 @@ function Enemy({ position, enemy }: { position: number[], enemy: any }) {
 
   return (
     <group ref={enemyRef} position={position as [number, number, number]}>
-      {/* Enemy body - mushroom-like shape */}
+      {/* Menacing red glow */}
+      <pointLight intensity={2} distance={8} color="#FF0000" decay={2} />
+      
+      {/* Enemy body - darker, more angular */}
       <mesh position={[0, 0.3, 0]} castShadow>
-        <sphereGeometry args={[0.4, 16, 16]} />
-        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+        <octahedronGeometry args={[0.4, 1]} />
+        <meshStandardMaterial 
+          color="#2C0000" 
+          roughness={0.2} 
+          metalness={0.8}
+          emissive="#FF0000"
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
-      {/* Enemy cap/head */}
-      <mesh position={[0, 0.6, 0]} castShadow>
-        <sphereGeometry args={[0.35, 16, 16]} />
-        <meshStandardMaterial color="#D2691E" roughness={0.7} />
+      {/* Spiky head */}
+      <mesh position={[0, 0.7, 0]} castShadow>
+        <coneGeometry args={[0.3, 0.6, 8]} />
+        <meshStandardMaterial 
+          color="#4B0000" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#FF0000"
+          emissiveIntensity={0.4}
+        />
       </mesh>
 
-      {/* Enemy spots on cap */}
-      <mesh position={[-0.15, 0.7, 0.2]} castShadow>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#FFFFFF" />
+      {/* Horns */}
+      <mesh position={[-0.15, 0.9, 0.1]} rotation={[0, 0, -0.3]} castShadow>
+        <coneGeometry args={[0.03, 0.3, 6]} />
+        <meshStandardMaterial color="#1A0000" metalness={1} roughness={0.1} />
       </mesh>
-      <mesh position={[0.1, 0.65, 0.25]} castShadow>
+      <mesh position={[0.15, 0.9, 0.1]} rotation={[0, 0, 0.3]} castShadow>
+        <coneGeometry args={[0.03, 0.3, 6]} />
+        <meshStandardMaterial color="#1A0000" metalness={1} roughness={0.1} />
+      </mesh>
+
+      {/* Glowing red eyes */}
+      <mesh position={[-0.12, 0.6, 0.25]} castShadow>
         <sphereGeometry args={[0.06, 8, 8]} />
-        <meshStandardMaterial color="#FFFFFF" />
+        <meshStandardMaterial 
+          color="#FF0000" 
+          emissive="#FF0000" 
+          emissiveIntensity={2}
+        />
       </mesh>
-      <mesh position={[0.2, 0.75, -0.1]} castShadow>
-        <sphereGeometry args={[0.07, 8, 8]} />
-        <meshStandardMaterial color="#FFFFFF" />
-      </mesh>
-
-      {/* Enemy eyes */}
-      <mesh position={[-0.15, 0.5, 0.3]} castShadow>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#000000" />
-      </mesh>
-      <mesh position={[0.15, 0.5, 0.3]} castShadow>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#000000" />
+      <mesh position={[0.12, 0.6, 0.25]} castShadow>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FF0000" 
+          emissive="#FF0000" 
+          emissiveIntensity={2}
+        />
       </mesh>
 
-      {/* Enemy pupils */}
-      <mesh position={[-0.15, 0.52, 0.35]} castShadow>
-        <sphereGeometry args={[0.03, 6, 6]} />
-        <meshStandardMaterial color="#FFFFFF" />
+      {/* Sharp teeth/fangs */}
+      <mesh position={[-0.05, 0.45, 0.28]} rotation={[0, 0, 0.2]} castShadow>
+        <coneGeometry args={[0.02, 0.1, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
       </mesh>
-      <mesh position={[0.15, 0.52, 0.35]} castShadow>
-        <sphereGeometry args={[0.03, 6, 6]} />
-        <meshStandardMaterial color="#FFFFFF" />
+      <mesh position={[0.05, 0.45, 0.28]} rotation={[0, 0, -0.2]} castShadow>
+        <coneGeometry args={[0.02, 0.1, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
       </mesh>
-
-      {/* Enemy mouth */}
-      <mesh position={[0, 0.4, 0.35]} castShadow>
-        <sphereGeometry args={[0.05, 8, 8]} />
-        <meshStandardMaterial color="#000000" />
+      <mesh position={[0, 0.4, 0.28]} castShadow>
+        <coneGeometry args={[0.025, 0.12, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
       </mesh>
 
-      {/* Enemy feet */}
-      <mesh position={[-0.2, 0.05, 0.2]} castShadow>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshStandardMaterial color="#654321" />
+      {/* Clawed feet */}
+      <mesh position={[-0.2, 0.05, 0.15]} castShadow>
+        <octahedronGeometry args={[0.08, 1]} />
+        <meshStandardMaterial color="#1A0000" metalness={0.9} roughness={0.2} />
       </mesh>
-      <mesh position={[0.2, 0.05, 0.2]} castShadow>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshStandardMaterial color="#654321" />
+      <mesh position={[0.2, 0.05, 0.15]} castShadow>
+        <octahedronGeometry args={[0.08, 1]} />
+        <meshStandardMaterial color="#1A0000" metalness={0.9} roughness={0.2} />
       </mesh>
+
+      {/* Sharp claws */}
+      <mesh position={[-0.2, 0.1, 0.25]} rotation={[0.3, 0, 0]} castShadow>
+        <coneGeometry args={[0.02, 0.08, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.2, 0.1, 0.25]} rotation={[0.3, 0, 0]} castShadow>
+        <coneGeometry args={[0.02, 0.08, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+      </mesh>
+
+      {/* Spiky back armor */}
+      {Array.from({ length: 3 }).map((_, i) => {
+        const y = 0.2 + i * 0.15
+        const size = 0.08 - i * 0.02
+        return (
+          <mesh key={i} position={[0, y, -0.3]} castShadow>
+            <coneGeometry args={[size, size * 2, 6]} />
+            <meshStandardMaterial 
+              color="#4B0000" 
+              metalness={0.8} 
+              roughness={0.2}
+              emissive="#660000"
+              emissiveIntensity={0.2}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
