@@ -53,18 +53,29 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
   // Initialize bombs
   useEffect(() => {
     const initialBombs = [
+      // Original crates
       { id: 1, position: [8, 1.5, -10], active: true },
       { id: 2, position: [-6, 1.5, -8], active: true },
       { id: 3, position: [12, 1.5, -15], active: true },
       { id: 4, position: [-10, 1.5, -12], active: true },
       { id: 5, position: [0, 1.5, -20], active: true },
+      // Additional crates closer to enemy areas
+      { id: 6, position: [-15, 1.5, -25], active: true },
+      { id: 7, position: [15, 1.5, -25], active: true },
+      { id: 8, position: [-20, 1.5, -35], active: true },
+      { id: 9, position: [20, 1.5, -35], active: true },
+      { id: 10, position: [0, 1.5, -40], active: true },
+      { id: 11, position: [-25, 1.5, -45], active: true },
+      { id: 12, position: [25, 1.5, -45], active: true },
+      { id: 13, position: [10, 1.5, -50], active: true },
+      { id: 14, position: [-10, 1.5, -50], active: true },
     ]
     setBombs(initialBombs)
 
     const initialEnemies = [
-      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 1 + Math.random(), currentPosition: [-8, 0.5, -25] },
-      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 1 + Math.random(), currentPosition: [8, 0.5, -28] },
-      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 1 + Math.random(), currentPosition: [0, 0.5, -35] },
+      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 3 + Math.random() * 2, currentPosition: [-8, 0.5, -25] },
+      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 3 + Math.random() * 2, currentPosition: [8, 0.5, -28] },
+      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 3 + Math.random() * 2, currentPosition: [0, 0.5, -35] },
     ]
     setEnemies(initialEnemies)
   }, [])
@@ -105,14 +116,89 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
             if (distance < 1.2) {
               // Collision threshold for crate
               // Create explosion
+              const explosionPos = bomb.position
               setExplosions((prev) => [
                 ...prev,
                 {
                   id: Date.now(),
-                  position: bomb.position,
+                  position: explosionPos,
                   createdAt: Date.now(),
                 },
               ])
+
+              // Check if any enemies are within explosion radius and kill them
+              enemies.forEach((enemy) => {
+                if (enemy.active) {
+                  const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
+                  const explosionVec = new THREE.Vector3(...explosionPos)
+                  const explosionDistance = enemyPos.distanceTo(explosionVec)
+                  
+                  if (explosionDistance < 6.0) { // Explosion damage radius
+                    // Create dramatic pop effect at enemy position
+                    setEnemyPops((prev) => [
+                      ...prev,
+                      {
+                        id: Date.now() + enemy.id,
+                        position: enemy.currentPosition || enemy.position,
+                        createdAt: Date.now(),
+                      },
+                    ])
+
+                    // Deactivate enemy
+                    setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+
+                    // Respawn enemy after 10 seconds at a random castle position
+                    setTimeout(() => {
+                      // Find a valid spawn position that doesn't collide with castle
+                      let spawnX, spawnZ
+                      let validSpawn = false
+                      let attempts = 0
+                      
+                      // Castle collision check function (inline for respawn)
+                      const checkSpawnCollision = (x: number, z: number) => {
+                        // Main tower collision
+                        const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+                        if (mainTowerDistance < 3.5) return true
+                        
+                        // Side towers collision
+                        const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+                        if (leftTowerDistance < 2.5) return true
+                        const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+                        if (rightTowerDistance < 2.5) return true
+                        
+                        // Front wall collision
+                        if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+                        
+                        return false
+                      }
+                      
+                      while (!validSpawn && attempts < 20) {
+                        spawnX = (Math.random() - 0.5) * 80  // Random position around castle (larger area)
+                        spawnZ = -30 + (Math.random() - 0.5) * 60
+                        
+                        if (!checkSpawnCollision(spawnX, spawnZ)) {
+                          validSpawn = true
+                        }
+                        attempts++
+                      }
+                      
+                      // If no valid spawn found, use a safe default position
+                      if (!validSpawn) {
+                        spawnX = (Math.random() - 0.5) * 20 > 0 ? 15 : -15
+                        spawnZ = -45
+                      }
+                      
+                      setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                        ...e, 
+                        active: true, 
+                        position: [spawnX, 0.5, spawnZ],
+                        currentPosition: [spawnX, 0.5, spawnZ],
+                        targetPosition: [spawnX, 0.5, spawnZ]
+                      } : e)))
+                    }, 10000)
+                  }
+                }
+              })
 
               // Deactivate bomb
               setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
@@ -179,8 +265,8 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
                 }
                 
                 while (!validSpawn && attempts < 20) {
-                  spawnX = (Math.random() - 0.5) * 50  // Random position around castle (larger area)
-                  spawnZ = -30 + (Math.random() - 0.5) * 40
+                  spawnX = (Math.random() - 0.5) * 80  // Random position around castle (larger area)
+                  spawnZ = -30 + (Math.random() - 0.5) * 60
                   
                   if (!checkSpawnCollision(spawnX, spawnZ)) {
                     validSpawn = true
@@ -951,9 +1037,9 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
         
         // Try to find a valid target that doesn't collide with castle
         while (!validTarget && attempts < 10) {
-          // Define castle area bounds (around castle at [0, 0, -30]) - larger radius
-          castleX = 0 + (Math.random() - 0.5) * 50  // -25 to 25 around castle
-          castleZ = -30 + (Math.random() - 0.5) * 40  // -50 to -10 around castle
+          // Define castle area bounds (around castle at [0, 0, -30]) - much larger radius
+          castleX = 0 + (Math.random() - 0.5) * 80  // -40 to 40 around castle
+          castleZ = -30 + (Math.random() - 0.5) * 60  // -60 to 0 around castle
           
           const testTarget = new THREE.Vector3(castleX, 0.5, castleZ)
           if (!checkCastleCollision(testTarget)) {
@@ -1035,7 +1121,7 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
         <meshStandardMaterial color="#1A0000" metalness={1} roughness={0.1} />
       </mesh>
 
-      {/* Glowing red eyes */}
+      {/* Angry glowing red eyes */}
       <mesh position={[-0.12, 0.6, 0.25]} castShadow>
         <sphereGeometry args={[0.06, 8, 8]} />
         <meshStandardMaterial 
@@ -1053,17 +1139,41 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
         />
       </mesh>
 
-      {/* Sharp teeth/fangs */}
-      <mesh position={[-0.05, 0.45, 0.28]} rotation={[0, 0, 0.2]} castShadow>
-        <coneGeometry args={[0.02, 0.1, 4]} />
-        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      {/* Angry eyebrows - angled downward for fierce look */}
+      <mesh position={[-0.12, 0.68, 0.22]} rotation={[0, 0, 0.5]} castShadow>
+        <boxGeometry args={[0.08, 0.02, 0.02]} />
+        <meshStandardMaterial color="#1A0000" metalness={0.8} roughness={0.2} />
       </mesh>
-      <mesh position={[0.05, 0.45, 0.28]} rotation={[0, 0, -0.2]} castShadow>
-        <coneGeometry args={[0.02, 0.1, 4]} />
-        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      <mesh position={[0.12, 0.68, 0.22]} rotation={[0, 0, -0.5]} castShadow>
+        <boxGeometry args={[0.08, 0.02, 0.02]} />
+        <meshStandardMaterial color="#1A0000" metalness={0.8} roughness={0.2} />
       </mesh>
-      <mesh position={[0, 0.4, 0.28]} castShadow>
+
+      {/* Angry snarling mouth - wider and more menacing */}
+      <mesh position={[0, 0.42, 0.28]} castShadow>
+        <boxGeometry args={[0.12, 0.04, 0.02]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+
+      {/* Sharp teeth/fangs - more prominent */}
+      <mesh position={[-0.08, 0.45, 0.28]} rotation={[0, 0, 0.3]} castShadow>
         <coneGeometry args={[0.025, 0.12, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      </mesh>
+      <mesh position={[-0.03, 0.46, 0.28]} rotation={[0, 0, 0.1]} castShadow>
+        <coneGeometry args={[0.02, 0.1, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.03, 0.46, 0.28]} rotation={[0, 0, -0.1]} castShadow>
+        <coneGeometry args={[0.02, 0.1, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.08, 0.45, 0.28]} rotation={[0, 0, -0.3]} castShadow>
+        <coneGeometry args={[0.025, 0.12, 4]} />
+        <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 0.47, 0.28]} castShadow>
+        <coneGeometry args={[0.03, 0.15, 4]} />
         <meshStandardMaterial color="#FFFFFF" metalness={0.8} roughness={0.1} />
       </mesh>
 

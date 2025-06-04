@@ -6,14 +6,20 @@
 
 ## Session Commits
 - 2b16e98 feat: increase enemy wandering radius around castle
+- 1608062 feat: fix collision detection, add crate regeneration, and redesign enemies
+- c653b53 feat: fix enemy death explosions, add castle collision detection, and ensure proper regeneration
 
 ## Current Task
-Enhanced enemy wandering behavior in archery game.
+Completed multiple archery game enhancements and bug fixes.
 
 ## Progress
-- Increased enemy wandering radius around castle from ±10 to ±25 on X-axis and ±7.5 to ±20 on Z-axis
-- Enemies now roam over a much larger area making gameplay more dynamic
-- Completed requested enhancement
+- ✅ Increased enemy wandering radius for more dynamic gameplay
+- ✅ Fixed enemy collision detection issues with improved position tracking
+- ✅ Added automatic crate regeneration after 15 seconds when destroyed
+- ✅ Redesigned enemies as menacing demons with glowing red eyes, horns, fangs, and spiky armor
+- ✅ Fixed enemy death explosions to appear at correct locations
+- ✅ Added comprehensive castle wall collision detection preventing enemies from walking through structures
+- ✅ Fixed enemy regeneration system to properly respawn enemies after 10 seconds in valid locations
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
