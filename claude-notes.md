@@ -15,7 +15,7 @@
 - 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
 
 ## Current Task
-Implemented dragon falling death animation
+Added distant mountain range for enhanced environment
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
@@ -122,6 +122,16 @@ Implemented dragon falling death animation
 - **Phase Management**: Added 'dying' phase instead of immediately removing dragon
 - **Timing**: 4-second falling animation before victory screen appears
 - **Visual Polish**: Health bar hidden during death, dramatic particle effects
+- ✅ Created distant mountain range around game perimeter
+
+## Mountain Range Features
+- **24 primary mountains** positioned in ring around game area at 120+ unit distance
+- **Variable heights**: 15-40 units tall for realistic mountain range silhouette
+- **Random positioning**: Slight radius variation to avoid perfect circle pattern
+- **Smaller secondary peaks**: 30% chance for additional smaller mountains near main peaks
+- **Snow-capped peaks**: Every 4th mountain gets white snow cap for visual variety
+- **Mountain colors**: Mix of grays (#555555-#666666) for depth and realism
+- **Cone geometry**: 6-sided cones for angular mountain appearance
 
 ## Instructions for Future Sessions
 If starting fresh, reread the project:init-app command contents in the command history to understand the initialization workflow.

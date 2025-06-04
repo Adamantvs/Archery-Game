@@ -1790,6 +1790,7 @@ function MedievalEnvironment() {
       <Ground />
       <Forest />
       <Castle />
+      <Mountains />
     </>
   )
 }
@@ -1910,6 +1911,101 @@ function Castle() {
         <boxGeometry args={[14, 4, 1]} />
         <meshStandardMaterial color="#696969" roughness={0.9} />
       </mesh>
+    </group>
+  )
+}
+
+function Mountains() {
+  const mountains = useMemo(() => {
+    const mountainData: { position: [number, number, number], scale: [number, number, number], color: string }[] = []
+    
+    // Create mountain ring around the perimeter
+    const numMountains = 24
+    const baseRadius = 120 // Distance from center
+    
+    for (let i = 0; i < numMountains; i++) {
+      const angle = (i / numMountains) * Math.PI * 2
+      const radius = baseRadius + Math.random() * 20 // Vary distance
+      
+      const x = Math.cos(angle) * radius
+      const z = Math.sin(angle) * radius
+      
+      // Vary mountain height and size
+      const height = 15 + Math.random() * 25 // 15-40 units tall
+      const width = 8 + Math.random() * 12   // 8-20 units wide
+      const depth = 6 + Math.random() * 8    // 6-14 units deep
+      
+      // Mountain colors - mix of grays and blues for depth
+      const colors = ['#555555', '#666666', '#4A4A4A', '#5A5A5A', '#444444']
+      const color = colors[Math.floor(Math.random() * colors.length)]
+      
+      mountainData.push({
+        position: [x, height / 2, z],
+        scale: [width, height, depth],
+        color
+      })
+      
+      // Add some smaller peaks around larger mountains
+      if (Math.random() > 0.7) {
+        const smallAngle = angle + (Math.random() - 0.5) * 0.3
+        const smallRadius = radius + (Math.random() - 0.5) * 15
+        const smallX = Math.cos(smallAngle) * smallRadius
+        const smallZ = Math.sin(smallAngle) * smallRadius
+        const smallHeight = height * (0.5 + Math.random() * 0.4)
+        
+        mountainData.push({
+          position: [smallX, smallHeight / 2, smallZ],
+          scale: [width * 0.6, smallHeight, depth * 0.7],
+          color: colors[Math.floor(Math.random() * colors.length)]
+        })
+      }
+    }
+    
+    return mountainData
+  }, [])
+  
+  return (
+    <group>
+      {mountains.map((mountain, index) => (
+        <mesh 
+          key={index}
+          position={mountain.position}
+          scale={mountain.scale}
+          receiveShadow
+        >
+          {/* Use coneGeometry for mountain shape */}
+          <coneGeometry args={[1, 1, 6]} />
+          <meshStandardMaterial 
+            color={mountain.color}
+            roughness={0.9}
+            metalness={0.1}
+          />
+        </mesh>
+      ))}
+      
+      {/* Add some snow-capped peaks */}
+      {mountains.filter((_, i) => i % 4 === 0).map((mountain, index) => (
+        <mesh 
+          key={`snow-${index}`}
+          position={[
+            mountain.position[0], 
+            mountain.position[1] + mountain.scale[1] * 0.3, 
+            mountain.position[2]
+          ]}
+          scale={[
+            mountain.scale[0] * 0.7, 
+            mountain.scale[1] * 0.3, 
+            mountain.scale[2] * 0.7
+          ]}
+        >
+          <coneGeometry args={[1, 1, 6]} />
+          <meshStandardMaterial 
+            color="#EEEEEE"
+            roughness={0.3}
+            metalness={0.2}
+          />
+        </mesh>
+      ))}
     </group>
   )
 }
