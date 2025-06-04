@@ -9,11 +9,23 @@ export default function ArcheryGame() {
   const [isLocked, setIsLocked] = useState(false)
   const [playerHealth, setPlayerHealth] = useState(100)
   const [score, setScore] = useState(0)
+  const [killCount, setKillCount] = useState(0)
+  const [dragon, setDragon] = useState<any>(null)
 
   return (
     <div className="w-full h-screen relative">
       <Canvas shadows camera={{ fov: 75, near: 0.1, far: 1000, position: [0, 2, 5] }}>
-        <Game setIsLocked={setIsLocked} playerHealth={playerHealth} setPlayerHealth={setPlayerHealth} score={score} setScore={setScore} />
+        <Game 
+          setIsLocked={setIsLocked} 
+          playerHealth={playerHealth} 
+          setPlayerHealth={setPlayerHealth} 
+          score={score} 
+          setScore={setScore}
+          killCount={killCount}
+          setKillCount={setKillCount}
+          dragon={dragon}
+          setDragon={setDragon}
+        />
       </Canvas>
 
       {/* UI Overlay */}
@@ -87,6 +99,17 @@ export default function ArcheryGame() {
           </div>
         )}
 
+        {/* Dragon Warning */}
+        {killCount >= 5 && dragon && dragon.active && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+            <div className="bg-red-900 bg-opacity-90 p-6 rounded-lg border-4 border-red-500 animate-pulse">
+              <h2 className="text-4xl font-bold text-red-300 mb-2">🐉 DRAGON BOSS AWAKENED! 🐉</h2>
+              <p className="text-xl text-white">A mighty dragon has emerged to defend the realm!</p>
+              <p className="text-lg text-yellow-400 mt-2">Health: {dragon.health}/5</p>
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
         {!isLocked && playerHealth > 0 && (
           <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-4 rounded">
@@ -98,6 +121,7 @@ export default function ArcheryGame() {
             <p className="text-xs">Hold Shift: Sprint</p>
             <p className="text-xs mt-2">Shoot the bomb crates and enemies!</p>
             <p className="text-xs text-yellow-400 mt-2">⚠️ Avoid enemies and explosions - they damage you!</p>
+            <p className="text-xs text-red-400 mt-1">🎯 Kill 5 enemies to face the DRAGON BOSS!</p>
           </div>
         )}
       </div>
@@ -105,7 +129,17 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: { setIsLocked: (locked: boolean) => void, playerHealth: number, setPlayerHealth: (health: number) => void, score: number, setScore: (score: number) => void }) {
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon }: { 
+  setIsLocked: (locked: boolean) => void, 
+  playerHealth: number, 
+  setPlayerHealth: (health: number) => void, 
+  score: number, 
+  setScore: (score: number) => void,
+  killCount: number,
+  setKillCount: (count: number) => void,
+  dragon: any,
+  setDragon: (dragon: any) => void
+}) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
@@ -113,6 +147,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
   const [enemies, setEnemies] = useState<any[]>([])
   const [enemyPops, setEnemyPops] = useState<any[]>([])
   const [lastDamageTime, setLastDamageTime] = useState(0)
+  const [dragonSpawned, setDragonSpawned] = useState(false)
   const controlsRef = useRef<any>()
 
   // Initialize bombs
@@ -244,9 +279,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
                       },
                     ])
 
-                    // Deactivate enemy and increment score
+                    // Deactivate enemy and increment score and kill count
                     setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
                     setScore(prev => prev + 1)
+                    setKillCount(prev => prev + 1)
 
                     // Respawn enemy after 10 seconds at a random castle position
                     setTimeout(() => {
@@ -334,9 +370,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
                 },
               ])
 
-              // Deactivate enemy and increment score
+              // Deactivate enemy and increment score and kill count
               setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
               setScore(prev => prev + 1)
+              setKillCount(prev => prev + 1)
 
               // Remove arrow
               setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
@@ -393,11 +430,50 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
             }
           }
         })
+
+        // Check dragon collisions
+        if (dragon && dragon.active) {
+          const dragonPos = new THREE.Vector3(...(dragon.currentPosition || dragon.position))
+          const distance = dragonPos.distanceTo(arrow.position)
+
+          if (distance < 2.0) { // Dragon is larger, bigger hit radius
+            // Create dramatic explosion effect at dragon position
+            setExplosions((prev) => [
+              ...prev,
+              {
+                id: Date.now(),
+                position: dragon.currentPosition || dragon.position,
+                createdAt: Date.now(),
+              },
+            ])
+
+            // Damage dragon
+            const newHealth = dragon.health - 1
+            if (newHealth <= 0) {
+              // Dragon defeated!
+              setEnemyPops((prev) => [
+                ...prev,
+                {
+                  id: Date.now(),
+                  position: dragon.currentPosition || dragon.position,
+                  createdAt: Date.now(),
+                },
+              ])
+              setDragon(null)
+              setScore(prev => prev + 10) // Big score bonus for dragon
+            } else {
+              setDragon(prev => ({ ...prev, health: newHealth }))
+            }
+
+            // Remove arrow
+            setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+          }
+        }
       })
     }
 
     checkCollisions()
-  }, [arrows, bombs, enemies, playerHealth, lastDamageTime])
+  }, [arrows, bombs, enemies, dragon, playerHealth, lastDamageTime])
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
@@ -412,6 +488,23 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
 
     return () => clearInterval(interval)
   }, [])
+
+  // Spawn dragon after 5 kills
+  useEffect(() => {
+    if (killCount >= 5 && !dragonSpawned) {
+      setDragonSpawned(true)
+      setDragon({
+        id: 'dragon',
+        position: [0, 15, -60],
+        health: 5,
+        active: true,
+        attackTimer: 0,
+        currentPosition: [0, 15, -60],
+        targetPosition: [0, 15, -60],
+        phase: 'circling' // circling, attacking, fleeing
+      })
+    }
+  }, [killCount, dragonSpawned])
 
   useEffect(() => {
     const handleClick = () => handleShoot()
@@ -473,6 +566,17 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore }: {
           }}
         />
       ))}
+
+      {/* Render dragon boss */}
+      {dragon && dragon.active && (
+        <DragonBoss 
+          dragon={dragon}
+          playerPosition={controlsRef.current?.getObject()?.position}
+          onPositionUpdate={(newPosition) => {
+            setDragon(prev => prev ? { ...prev, currentPosition: newPosition } : null)
+          }}
+        />
+      )}
 
       {/* Render explosions */}
       {explosions.map((explosion) => (
@@ -1708,6 +1812,299 @@ function EnemyPop({ position }: { position: number[] }) {
             transparent={true}
             opacity={opacity}
           />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any, playerPosition?: THREE.Vector3, onPositionUpdate: (position: number[]) => void }) {
+  const dragonRef = useRef<THREE.Group>(null)
+  const [bobOffset, setBobOffset] = useState(0)
+  const [wingFlap, setWingFlap] = useState(0)
+  const [currentPosition, setCurrentPosition] = useState(dragon.position)
+  const [attackTimer, setAttackTimer] = useState(0)
+
+  // Dragon AI and movement
+  useFrame((state, delta) => {
+    if (!dragonRef.current || !playerPosition) return
+
+    setBobOffset(prev => prev + delta * 2)
+    setWingFlap(prev => prev + delta * 8)
+    setAttackTimer(prev => prev + delta)
+
+    // Update dragon's current position based on phase
+    let newPosition = [...currentPosition]
+    
+    if (dragon.phase === 'circling') {
+      // Circle around the castle area
+      const time = state.clock.elapsedTime * 0.3
+      const radius = 25
+      newPosition[0] = Math.cos(time) * radius
+      newPosition[2] = -40 + Math.sin(time) * radius
+      newPosition[1] = 15 + Math.sin(time * 2) * 3 // Vertical bobbing
+    } else if (dragon.phase === 'attacking') {
+      // Swoop towards player
+      if (playerPosition) {
+        const direction = new THREE.Vector3()
+        direction.subVectors(playerPosition, new THREE.Vector3(...currentPosition))
+        direction.normalize().multiplyScalar(8) // Attack speed
+        
+        newPosition[0] += direction.x * delta
+        newPosition[1] += direction.y * delta  
+        newPosition[2] += direction.z * delta
+      }
+    }
+
+    setCurrentPosition(newPosition)
+    onPositionUpdate(newPosition)
+
+    // Update visual position
+    dragonRef.current.position.set(...newPosition)
+    
+    // Face towards player
+    if (playerPosition) {
+      dragonRef.current.lookAt(playerPosition)
+    }
+
+    // Vertical bobbing motion
+    dragonRef.current.position.y += Math.sin(bobOffset) * 0.5
+  })
+
+  return (
+    <group ref={dragonRef} position={currentPosition as [number, number, number]}>
+      {/* Dramatic dragon light aura */}
+      <pointLight intensity={3} distance={30} color="#FF0000" decay={2} />
+      
+      {/* Main dragon body - much larger and more menacing */}
+      <mesh position={[0, 0, 0]} castShadow>
+        <sphereGeometry args={[2, 16, 16]} />
+        <meshStandardMaterial 
+          color="#8B0000" 
+          roughness={0.3} 
+          metalness={0.7}
+          emissive="#330000"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+
+      {/* Dragon neck */}
+      <mesh position={[0, 1, 3]} rotation={[0.3, 0, 0]} castShadow>
+        <cylinderGeometry args={[1.2, 1.8, 4]} />
+        <meshStandardMaterial 
+          color="#660000" 
+          roughness={0.4} 
+          metalness={0.6}
+          emissive="#220000"
+          emissiveIntensity={0.3}
+        />
+      </mesh>
+
+      {/* Dragon head - massive and terrifying */}
+      <mesh position={[0, 2.5, 5]} castShadow>
+        <sphereGeometry args={[1.8, 16, 16]} />
+        <meshStandardMaterial 
+          color="#AA0000" 
+          roughness={0.2} 
+          metalness={0.8}
+          emissive="#440000"
+          emissiveIntensity={0.4}
+        />
+      </mesh>
+
+      {/* Glowing red eyes */}
+      <mesh position={[-0.6, 2.8, 6.2]} castShadow>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FF0000" 
+          emissive="#FF0000" 
+          emissiveIntensity={2}
+        />
+      </mesh>
+      <mesh position={[0.6, 2.8, 6.2]} castShadow>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FF0000" 
+          emissive="#FF0000" 
+          emissiveIntensity={2}
+        />
+      </mesh>
+
+      {/* Massive dragon horns */}
+      <mesh position={[-0.8, 3.5, 5]} rotation={[0.3, 0, 0.3]} castShadow>
+        <coneGeometry args={[0.3, 2, 6]} />
+        <meshStandardMaterial color="#2F2F2F" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.8, 3.5, 5]} rotation={[0.3, 0, -0.3]} castShadow>
+        <coneGeometry args={[0.3, 2, 6]} />
+        <meshStandardMaterial color="#2F2F2F" metalness={0.9} roughness={0.1} />
+      </mesh>
+
+      {/* Dragon nostrils with smoke effect */}
+      <mesh position={[-0.3, 2.3, 6.8]} castShadow>
+        <cylinderGeometry args={[0.15, 0.1, 0.3]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+      <mesh position={[0.3, 2.3, 6.8]} castShadow>
+        <cylinderGeometry args={[0.15, 0.1, 0.3]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+
+      {/* Massive sharp teeth */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2
+        const x = Math.cos(angle) * 1.2
+        const z = Math.sin(angle) * 0.3
+        return (
+          <mesh key={i} position={[x, 1.8, 5.5 + z]} rotation={[0, angle, 0]} castShadow>
+            <coneGeometry args={[0.1, 0.8, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        )
+      })}
+
+      {/* Massive dragon wings with detailed structure */}
+      <group position={[0, 1, 0]}>
+        {/* Left Wing */}
+        <group position={[-3, 0, 0]} rotation={[0, 0, Math.sin(wingFlap) * 0.5]}>
+          {/* Wing membrane - much larger */}
+          <mesh position={[-4, 2, 0]} rotation={[0, 0, 0.3]}>
+            <planeGeometry args={[8, 10]} />
+            <meshStandardMaterial 
+              color="#4B0000" 
+              transparent={true}
+              opacity={0.8}
+              side={THREE.DoubleSide}
+              emissive="#660000"
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+          
+          {/* Wing bones - stronger structure */}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <mesh key={i} position={[-2 - i * 1.5, 4 - i * 0.8, 0]} rotation={[0, 0, 0.2 + i * 0.1]} castShadow>
+              <cylinderGeometry args={[0.08, 0.08, 6 - i]} />
+              <meshStandardMaterial color="#2F2F2F" metalness={0.9} />
+            </mesh>
+          ))}
+          
+          {/* Wing claws */}
+          <mesh position={[-8, 6, 0]} rotation={[0, 0, -0.5]} castShadow>
+            <coneGeometry args={[0.2, 1.5, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        </group>
+
+        {/* Right Wing */}
+        <group position={[3, 0, 0]} rotation={[0, 0, -Math.sin(wingFlap) * 0.5]}>
+          {/* Wing membrane - much larger */}
+          <mesh position={[4, 2, 0]} rotation={[0, 0, -0.3]}>
+            <planeGeometry args={[8, 10]} />
+            <meshStandardMaterial 
+              color="#4B0000" 
+              transparent={true}
+              opacity={0.8}
+              side={THREE.DoubleSide}
+              emissive="#660000"
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+          
+          {/* Wing bones - stronger structure */}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <mesh key={i} position={[2 + i * 1.5, 4 - i * 0.8, 0]} rotation={[0, 0, -0.2 - i * 0.1]} castShadow>
+              <cylinderGeometry args={[0.08, 0.08, 6 - i]} />
+              <meshStandardMaterial color="#2F2F2F" metalness={0.9} />
+            </mesh>
+          ))}
+          
+          {/* Wing claws */}
+          <mesh position={[8, 6, 0]} rotation={[0, 0, 0.5]} castShadow>
+            <coneGeometry args={[0.2, 1.5, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Dragon tail with spikes */}
+      <group position={[0, 0, -4]}>
+        <mesh position={[0, 0, -3]} rotation={[0.2, 0, 0]} castShadow>
+          <cylinderGeometry args={[1.5, 0.8, 6]} />
+          <meshStandardMaterial 
+            color="#660000" 
+            roughness={0.4} 
+            metalness={0.6}
+            emissive="#220000"
+            emissiveIntensity={0.3}
+          />
+        </mesh>
+        
+        {/* Tail spikes */}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <mesh key={i} position={[0, 0.5, -1 - i]} castShadow>
+            <coneGeometry args={[0.3, 1, 6]} />
+            <meshStandardMaterial 
+              color="#4B0000" 
+              metalness={0.8} 
+              roughness={0.2}
+              emissive="#660000"
+              emissiveIntensity={0.4}
+            />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Dragon claws */}
+      <mesh position={[-1.5, -1.5, 2]} castShadow>
+        <sphereGeometry args={[0.8, 8, 8]} />
+        <meshStandardMaterial color="#2F2F2F" metalness={0.9} roughness={0.2} />
+      </mesh>
+      <mesh position={[1.5, -1.5, 2]} castShadow>
+        <sphereGeometry args={[0.8, 8, 8]} />
+        <meshStandardMaterial color="#2F2F2F" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* Sharp talons */}
+      {Array.from({ length: 6 }).map((_, i) => {
+        const side = i < 3 ? -1 : 1
+        const clawIndex = i % 3
+        const x = side * 1.5 + side * clawIndex * 0.3
+        const z = 2.5 + clawIndex * 0.2
+        return (
+          <mesh key={i} position={[x, -2, z]} rotation={[0.5, 0, 0]} castShadow>
+            <coneGeometry args={[0.08, 0.6, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        )
+      })}
+
+      {/* Spine spikes along the back */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const z = 2 - i * 0.8
+        const size = 0.6 - i * 0.06
+        return (
+          <mesh key={i} position={[0, 1.5 + Math.sin(i * 0.5) * 0.3, z]} castShadow>
+            <coneGeometry args={[size * 0.5, size * 2, 6]} />
+            <meshStandardMaterial 
+              color="#4B0000" 
+              metalness={0.8} 
+              roughness={0.2}
+              emissive="#660000"
+              emissiveIntensity={0.5}
+            />
+          </mesh>
+        )
+      })}
+
+      {/* Health indicator above dragon */}
+      <group position={[0, 6, 0]}>
+        <mesh>
+          <planeGeometry args={[4, 0.5]} />
+          <meshStandardMaterial color="#FF0000" transparent opacity={0.8} />
+        </mesh>
+        <mesh position={[0, 0, 0.01]} scale={[dragon.health / 5, 1, 1]}>
+          <planeGeometry args={[4, 0.5]} />
+          <meshStandardMaterial color="#00FF00" transparent opacity={0.9} />
         </mesh>
       </group>
     </group>
