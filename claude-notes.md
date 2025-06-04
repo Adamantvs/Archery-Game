@@ -15,7 +15,7 @@
 - 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
 
 ## Current Task
-Fixed enemy spawning issues and implemented rocket projectile system
+Fixed dragon clipping issue during entrance animation
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
@@ -100,6 +100,14 @@ Fixed enemy spawning issues and implemented rocket projectile system
 - ✅ Rockets award 2 points for enemy kills vs 1 for arrows
 - ✅ Rockets deal 20 bonus points for dragon kills vs 10 for arrows
 - ✅ Rocket explosions have larger damage radius for both enemies and player
+- ✅ Fixed dragon clipping/repositioning issue during entrance sequence
+
+## Dragon Clipping Fix
+- **Problem**: Dragon was clipping out after spawning due to direct phase mutation in useFrame
+- **Root Cause**: DragonBoss component was directly mutating `dragon.phase = 'circling'` which caused immediate position recalculation
+- **Solution**: Removed direct mutation and implemented proper React state management
+- **Implementation**: Added timeout in parent component to transition dragon phase from 'entering' to 'circling' after 6 seconds
+- **Result**: Dragon now smoothly descends during entrance phase without sudden repositioning
 
 ## Instructions for Future Sessions
 If starting fresh, reread the project:init-app command contents in the command history to understand the initialization workflow.

@@ -957,6 +957,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
       setTimeout(() => {
         setShowDragonWarning(false)
       }, 7000)
+      
+      // Step 4: Transition dragon from entering to circling phase (after 6 seconds - during descent)
+      setTimeout(() => {
+        setDragon(prev => prev ? { ...prev, phase: 'circling' } : null)
+      }, 6000)
     }
   }, [killCount, dragonSpawned])
 
@@ -2458,12 +2463,13 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         newPosition[1] += direction.y
         newPosition[2] += direction.z
       } else {
-        // Arrived at target, switch to circling
-        dragon.phase = 'circling'
+        // Arrived at target - smoothly transition to circling
         newPosition = [...targetPos]
+        // Don't immediately switch to circling - let the dragon settle first
+        // We'll transition to circling phase through the parent component
       }
     } else if (dragon.phase === 'circling') {
-      // Circle around the castle area
+      // Circle around the castle area - only start circling if we're not still entering
       const time = state.clock.elapsedTime * 0.3
       const radius = 25
       newPosition[0] = Math.cos(time) * radius
