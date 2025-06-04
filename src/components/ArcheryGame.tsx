@@ -7,15 +7,33 @@ import * as THREE from "three"
 
 export default function ArcheryGame() {
   const [isLocked, setIsLocked] = useState(false)
+  const [playerHealth, setPlayerHealth] = useState(100)
 
   return (
     <div className="w-full h-screen relative">
       <Canvas shadows camera={{ fov: 75, near: 0.1, far: 1000, position: [0, 2, 5] }}>
-        <Game setIsLocked={setIsLocked} />
+        <Game setIsLocked={setIsLocked} playerHealth={playerHealth} setPlayerHealth={setPlayerHealth} />
       </Canvas>
 
       {/* UI Overlay */}
       <div className="absolute inset-0 pointer-events-none">
+        {/* Health Bar */}
+        <div className="absolute top-4 right-4">
+          <div className="bg-black bg-opacity-70 p-3 rounded-lg">
+            <div className="text-white text-sm font-bold mb-1">HEALTH</div>
+            <div className="w-48 h-4 bg-gray-800 rounded-full overflow-hidden border-2 border-gray-600">
+              <div 
+                className={`h-full transition-all duration-300 ${
+                  playerHealth > 60 ? 'bg-green-500' : 
+                  playerHealth > 30 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${Math.max(0, playerHealth)}%` }}
+              />
+            </div>
+            <div className="text-white text-xs mt-1 text-center">{Math.round(playerHealth)}/100</div>
+          </div>
+        </div>
+
         {/* Crosshair */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="w-6 h-6 border-2 border-white rounded-full opacity-70">
@@ -24,8 +42,24 @@ export default function ArcheryGame() {
           </div>
         </div>
 
+        {/* Game Over Screen */}
+        {playerHealth <= 0 && (
+          <div className="absolute inset-0 bg-red-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
+            <div className="text-center text-white">
+              <h1 className="text-6xl font-bold mb-4 text-red-300">GAME OVER</h1>
+              <p className="text-xl mb-6">You have been defeated by the flying demons!</p>
+              <button 
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
+                onClick={() => window.location.reload()}
+              >
+                Restart Game
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
-        {!isLocked && (
+        {!isLocked && playerHealth > 0 && (
           <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-4 rounded">
             <p className="text-sm">Click to lock cursor and start playing</p>
             <p className="text-xs mt-2">Left Click: Shoot Arrow</p>
@@ -34,6 +68,7 @@ export default function ArcheryGame() {
             <p className="text-xs">Spacebar: Jump</p>
             <p className="text-xs">Hold Shift: Sprint</p>
             <p className="text-xs mt-2">Shoot the bomb crates and enemies!</p>
+            <p className="text-xs text-yellow-400 mt-2">⚠️ Avoid enemies and explosions - they damage you!</p>
           </div>
         )}
       </div>
@@ -41,13 +76,14 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
+function Game({ setIsLocked, playerHealth, setPlayerHealth }: { setIsLocked: (locked: boolean) => void, playerHealth: number, setPlayerHealth: (health: number) => void }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
   const [explosions, setExplosions] = useState<any[]>([])
   const [enemies, setEnemies] = useState<any[]>([])
   const [enemyPops, setEnemyPops] = useState<any[]>([])
+  const [lastDamageTime, setLastDamageTime] = useState(0)
   const controlsRef = useRef<any>()
 
   // Initialize bombs
@@ -105,9 +141,33 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
     setTimeout(() => setBowDrawn(false), 200)
   }
 
-  // Check for arrow-bomb collisions
+  // Damage player function with cooldown
+  const damagePlayer = (damage: number) => {
+    const now = Date.now()
+    if (now - lastDamageTime > 1000) { // 1 second damage cooldown
+      setPlayerHealth(prev => Math.max(0, prev - damage))
+      setLastDamageTime(now)
+    }
+  }
+
+  // Check for collisions (arrows, enemies, explosions)
   useEffect(() => {
     const checkCollisions = () => {
+      const playerPosition = controlsRef.current?.getObject()?.position
+      
+      // Check enemy-player collisions
+      if (playerPosition) {
+        enemies.forEach((enemy) => {
+          if (enemy.active) {
+            const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
+            const distance = enemyPos.distanceTo(playerPosition)
+            
+            if (distance < 1.2) { // Enemy collision radius
+              damagePlayer(10) // 10 damage per hit
+            }
+          }
+        })
+      }
       arrows.forEach((arrow) => {
         bombs.forEach((bomb) => {
           if (bomb.active) {
@@ -125,6 +185,17 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
                   createdAt: Date.now(),
                 },
               ])
+
+              // Check if player is within explosion radius and damage them
+              if (playerPosition) {
+                const explosionVec = new THREE.Vector3(...explosionPos)
+                const playerDistance = playerPosition.distanceTo(explosionVec)
+                
+                if (playerDistance < 8.0) { // Player explosion damage radius (larger than enemy)
+                  const damage = Math.max(5, 30 - playerDistance * 3) // More damage when closer
+                  damagePlayer(damage)
+                }
+              }
 
               // Check if any enemies are within explosion radius and kill them
               enemies.forEach((enemy) => {
@@ -295,7 +366,7 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
     }
 
     checkCollisions()
-  }, [arrows, bombs, enemies])
+  }, [arrows, bombs, enemies, playerHealth, lastDamageTime])
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
