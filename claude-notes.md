@@ -1,9 +1,9 @@
 # Claude Code Session Notes
 
 ## Session Status
-**Current Step**: Dragon Boss Implementation Complete
+**Current Step**: Enemy Spawning Fix & Rocket Implementation Complete
 **Starting Commit**: a8beb98 (feat: implement aggressive demon AI improvements and scoring system)
-**Session Type**: Game feature enhancement - Dragon Boss system
+**Session Type**: Bug fixes and new weapon implementation
 
 ## Session Commits (Reverted from later problematic commits)
 - 2b16e98 feat: increase enemy wandering radius around castle
@@ -15,7 +15,7 @@
 - 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
 
 ## Current Task
-Dragon Boss Final Boss System - Enhanced with User Feedback
+Fixed enemy spawning issues and implemented rocket projectile system
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
@@ -89,6 +89,17 @@ Dragon Boss Final Boss System - Enhanced with User Feedback
 2. Get clarifying questions about core functionality and target users
 3. Document responses and update CLAUDE.md
 4. Plan and implement MVP
+
+## Latest Session Work
+- ✅ Fixed enemy spawning issue by implementing proper collision detection for spawn positions
+- ✅ Added collision-free spawn position validation for all 5 initial enemies
+- ✅ Implemented super fast rocket projectile system for right-click
+- ✅ Added rocket collision detection with enhanced damage (2x dragon damage, larger blast radius)
+- ✅ Created detailed rocket visual with fins, exhaust trail, and glow effects
+- ✅ Updated UI instructions to show right-click rocket functionality
+- ✅ Rockets award 2 points for enemy kills vs 1 for arrows
+- ✅ Rockets deal 20 bonus points for dragon kills vs 10 for arrows
+- ✅ Rocket explosions have larger damage radius for both enemies and player
 
 ## Instructions for Future Sessions
 If starting fresh, reread the project:init-app command contents in the command history to understand the initialization workflow.

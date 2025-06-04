@@ -154,6 +154,7 @@ export default function ArcheryGame() {
           <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-4 rounded">
             <p className="text-sm">Click to lock cursor and start playing</p>
             <p className="text-xs mt-2">Left Click: Shoot Arrow</p>
+            <p className="text-xs">Right Click: Fire Rocket (2x damage!)</p>
             <p className="text-xs">Mouse: Aim</p>
             <p className="text-xs">WASD: Move</p>
             <p className="text-xs">Spacebar: Jump</p>
@@ -191,6 +192,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   setDragonEntering: (entering: boolean) => void
 }) {
   const [arrows, setArrows] = useState<any[]>([])
+  const [rockets, setRockets] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
   const [explosions, setExplosions] = useState<any[]>([])
@@ -221,11 +223,66 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     ]
     setBombs(initialBombs)
 
-    const initialEnemies = [
-      { id: 1, position: [-8, 0.5, -25], active: true, targetPosition: [-8, 0.5, -25], moveSpeed: 5 + Math.random() * 3, currentPosition: [-8, 0.5, -25] },
-      { id: 2, position: [8, 0.5, -28], active: true, targetPosition: [8, 0.5, -28], moveSpeed: 5 + Math.random() * 3, currentPosition: [8, 0.5, -28] },
-      { id: 3, position: [0, 0.5, -35], active: true, targetPosition: [0, 0.5, -35], moveSpeed: 5 + Math.random() * 3, currentPosition: [0, 0.5, -35] },
+    // Function to check if spawn position collides with castle
+    const checkSpawnCollision = (x: number, z: number) => {
+      // Main tower collision
+      const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+      if (mainTowerDistance < 3.5) return true
+      
+      // Side towers collision
+      const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+      if (leftTowerDistance < 2.5) return true
+      const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+      if (rightTowerDistance < 2.5) return true
+      
+      // Front wall collision
+      if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+      
+      return false
+    }
+
+    // Generate safe spawn positions for enemies
+    const safeSpawnPositions = []
+    const attemptPositions = [
+      [-15, 0.5, -20], [15, 0.5, -20], [0, 0.5, -45],
+      [-20, 0.5, -35], [20, 0.5, -35], [-25, 0.5, -50],
+      [25, 0.5, -50], [0, 0.5, -60], [-10, 0.5, -55]
     ]
+    
+    for (const pos of attemptPositions) {
+      if (!checkSpawnCollision(pos[0], pos[2]) && safeSpawnPositions.length < 5) {
+        safeSpawnPositions.push(pos)
+      }
+    }
+    
+    // Ensure we have at least 5 enemies
+    while (safeSpawnPositions.length < 5) {
+      let validSpawn = false
+      let attempts = 0
+      while (!validSpawn && attempts < 20) {
+        const x = (Math.random() - 0.5) * 80
+        const z = -30 + (Math.random() - 0.5) * 60
+        if (!checkSpawnCollision(x, z)) {
+          safeSpawnPositions.push([x, 0.5, z])
+          validSpawn = true
+        }
+        attempts++
+      }
+      if (!validSpawn) {
+        // Fallback to safe default positions
+        const fallbacks = [[30, 0.5, -60], [-30, 0.5, -60], [0, 0.5, -80]]
+        safeSpawnPositions.push(fallbacks[safeSpawnPositions.length % fallbacks.length])
+      }
+    }
+
+    const initialEnemies = safeSpawnPositions.slice(0, 5).map((pos, index) => ({
+      id: index + 1,
+      position: pos,
+      active: true,
+      targetPosition: pos,
+      moveSpeed: 5 + Math.random() * 3,
+      currentPosition: pos
+    }))
     setEnemies(initialEnemies)
   }, [])
 
@@ -582,10 +639,259 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           }
         }
       })
+      
+      // Check rocket collisions (similar to arrows but more powerful)
+      rockets.forEach((rocket) => {
+        bombs.forEach((bomb) => {
+          if (bomb.active) {
+            const distance = new THREE.Vector3(...bomb.position).distanceTo(rocket.position)
+
+            if (distance < 1.5) { // Rockets have larger hit radius
+              // Create bigger explosion
+              const explosionPos = bomb.position
+              setExplosions((prev) => [
+                ...prev,
+                {
+                  id: Date.now(),
+                  position: explosionPos,
+                  createdAt: Date.now(),
+                },
+              ])
+
+              // Rocket explosions are more powerful
+              if (playerPosition) {
+                const explosionVec = new THREE.Vector3(...explosionPos)
+                const playerDistance = playerPosition.distanceTo(explosionVec)
+                
+                if (playerDistance < 10.0) { // Larger blast radius
+                  const damage = Math.max(8, 40 - playerDistance * 3) // More damage
+                  damagePlayer(damage)
+                }
+              }
+
+              // Rockets kill enemies in larger radius
+              enemies.forEach((enemy) => {
+                if (enemy.active) {
+                  const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
+                  const explosionVec = new THREE.Vector3(...explosionPos)
+                  const explosionDistance = enemyPos.distanceTo(explosionVec)
+                  
+                  if (explosionDistance < 8.0) { // Larger explosion radius
+                    setEnemyPops((prev) => [
+                      ...prev,
+                      {
+                        id: Date.now() + enemy.id,
+                        position: enemy.currentPosition || enemy.position,
+                        createdAt: Date.now(),
+                      },
+                    ])
+
+                    setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+                    setScore(prev => prev + 1)
+                    setKillCount(prev => prev + 1)
+
+                    // Respawn enemy after 10 seconds
+                    setTimeout(() => {
+                      let spawnX, spawnZ
+                      let validSpawn = false
+                      let attempts = 0
+                      
+                      const checkSpawnCollision = (x: number, z: number) => {
+                        const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+                        if (mainTowerDistance < 3.5) return true
+                        const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+                        if (leftTowerDistance < 2.5) return true
+                        const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+                        if (rightTowerDistance < 2.5) return true
+                        if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+                        return false
+                      }
+                      
+                      while (!validSpawn && attempts < 20) {
+                        spawnX = (Math.random() - 0.5) * 80
+                        spawnZ = -30 + (Math.random() - 0.5) * 60
+                        if (!checkSpawnCollision(spawnX, spawnZ)) {
+                          validSpawn = true
+                        }
+                        attempts++
+                      }
+                      
+                      if (!validSpawn) {
+                        spawnX = (Math.random() - 0.5) * 20 > 0 ? 15 : -15
+                        spawnZ = -45
+                      }
+                      
+                      setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                        ...e, 
+                        active: true, 
+                        position: [spawnX, 0.5, spawnZ],
+                        currentPosition: [spawnX, 0.5, spawnZ],
+                        targetPosition: [spawnX, 0.5, spawnZ]
+                      } : e)))
+                    }, 10000)
+                  }
+                }
+              })
+
+              setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: false } : b)))
+              setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+
+              setTimeout(() => {
+                setBombs((prev) => prev.map((b) => (b.id === bomb.id ? { ...b, active: true } : b)))
+              }, 15000)
+            }
+          }
+        })
+
+        // Rocket vs enemy collisions
+        enemies.forEach((enemy) => {
+          if (enemy.active) {
+            const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
+            const distance = enemyPos.distanceTo(rocket.position)
+
+            if (distance < 1.2) { // Rockets are easier to hit with
+              setEnemyPops((prev) => [
+                ...prev,
+                {
+                  id: Date.now() + enemy.id,
+                  position: enemy.currentPosition || enemy.position,
+                  createdAt: Date.now(),
+                },
+              ])
+
+              setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { ...e, active: false } : e)))
+              setScore(prev => prev + 2) // More points for rocket kills
+              setKillCount(prev => prev + 1)
+              setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+
+              // Respawn enemy
+              setTimeout(() => {
+                let spawnX, spawnZ
+                let validSpawn = false
+                let attempts = 0
+                
+                const checkSpawnCollision = (x: number, z: number) => {
+                  const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+                  if (mainTowerDistance < 3.5) return true
+                  const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+                  if (leftTowerDistance < 2.5) return true
+                  const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+                  if (rightTowerDistance < 2.5) return true
+                  if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+                  return false
+                }
+                
+                while (!validSpawn && attempts < 20) {
+                  spawnX = (Math.random() - 0.5) * 80
+                  spawnZ = -30 + (Math.random() - 0.5) * 60
+                  if (!checkSpawnCollision(spawnX, spawnZ)) {
+                    validSpawn = true
+                  }
+                  attempts++
+                }
+                
+                if (!validSpawn) {
+                  spawnX = (Math.random() - 0.5) * 20 > 0 ? 15 : -15
+                  spawnZ = -45
+                }
+                
+                setEnemies((prev) => prev.map((e) => (e.id === enemy.id ? { 
+                  ...e, 
+                  active: true, 
+                  position: [spawnX, 0.5, spawnZ],
+                  currentPosition: [spawnX, 0.5, spawnZ],
+                  targetPosition: [spawnX, 0.5, spawnZ]
+                } : e)))
+              }, 10000)
+            }
+          }
+        })
+
+        // Rocket vs dragon collisions
+        if (dragon && dragon.active) {
+          const dragonPos = new THREE.Vector3(...(dragon.currentPosition || dragon.position))
+          const distance = dragonPos.distanceTo(rocket.position)
+
+          if (distance < 3.0) { // Rockets are easier to hit dragon with
+            // Multiple explosions for rocket hit
+            setExplosions((prev) => [
+              ...prev,
+              {
+                id: Date.now(),
+                position: dragon.currentPosition || dragon.position,
+                createdAt: Date.now(),
+              },
+              {
+                id: Date.now() + 1,
+                position: [dragon.currentPosition[0] + 2, dragon.currentPosition[1], dragon.currentPosition[2]],
+                createdAt: Date.now() + 50,
+              },
+            ])
+
+            // Rockets do 2 damage to dragon
+            const newHealth = dragon.health - 2
+            if (newHealth <= 0) {
+              // Dragon defeated by rocket - EXTRA DRAMATIC!
+              const dragonPos = dragon.currentPosition || dragon.position
+              
+              // Even more explosions for rocket kill
+              setExplosions((prev) => [
+                ...prev,
+                ...Array.from({ length: 8 }, (_, i) => ({
+                  id: Date.now() + i * 10,
+                  position: [
+                    dragonPos[0] + (Math.random() - 0.5) * 10,
+                    dragonPos[1] + (Math.random() - 0.5) * 6,
+                    dragonPos[2] + (Math.random() - 0.5) * 10
+                  ],
+                  createdAt: Date.now() + i * 100,
+                }))
+              ])
+
+              setEnemyPops((prev) => [
+                ...prev,
+                {
+                  id: Date.now(),
+                  position: dragonPos,
+                  createdAt: Date.now(),
+                },
+              ])
+
+              enemies.forEach((enemy) => {
+                if (enemy.active) {
+                  setEnemyPops((prev) => [
+                    ...prev,
+                    {
+                      id: Date.now() + enemy.id * 100,
+                      position: enemy.currentPosition || enemy.position,
+                      createdAt: Date.now() + (enemy.id * 200),
+                    },
+                  ])
+                }
+              })
+              
+              setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
+              setDragon(null)
+              setScore(prev => prev + 20) // Bigger bonus for rocket dragon kill
+              
+              setShowVictoryMessage(true)
+              setTimeout(() => {
+                setShowVictoryMessage(false)
+                setDragonDefeated(true)
+              }, 6000)
+              
+            } else {
+              setDragon(prev => ({ ...prev, health: newHealth }))
+            }
+
+            setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
+          }
+        }
+      })
     }
 
     checkCollisions()
-  }, [arrows, bombs, enemies, dragon, playerHealth, lastDamageTime])
+  }, [arrows, rockets, bombs, enemies, dragon, playerHealth, lastDamageTime])
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
@@ -654,12 +960,51 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     }
   }, [killCount, dragonSpawned])
 
+  const handleRocketShoot = () => {
+    if (!controlsRef.current) return
+
+    const camera = controlsRef.current.getObject()
+    const direction = new THREE.Vector3(0, 0, -1)
+    direction.applyQuaternion(camera.quaternion)
+
+    // Spawn rocket from crossbow position
+    const crossbowOffset = new THREE.Vector3(0.4, -0.1, -0.3)
+    crossbowOffset.applyQuaternion(camera.quaternion)
+    const frontOffset = direction.clone().multiplyScalar(0.7)
+    const startPosition = camera.position.clone().add(crossbowOffset).add(frontOffset)
+
+    const newRocket = {
+      id: Date.now(),
+      position: startPosition,
+      velocity: direction.multiplyScalar(80), // Super fast!
+      life: 50
+    }
+
+    setRockets((prev) => [...prev, newRocket])
+    setBowDrawn(true)
+    setTimeout(() => setBowDrawn(false), 100)
+  }
+
   useEffect(() => {
-    const handleClick = () => handleShoot()
+    const handleClick = (e: MouseEvent) => {
+      if (e.button === 0) { // Left click
+        handleShoot()
+      }
+    }
+    
+    const handleRightClick = (e: MouseEvent) => {
+      if (e.button === 2) { // Right click
+        e.preventDefault()
+        handleRocketShoot()
+      }
+    }
+    
     const handleLock = () => setIsLocked(true)
     const handleUnlock = () => setIsLocked(false)
 
-    document.addEventListener("click", handleClick)
+    document.addEventListener("mousedown", handleClick)
+    document.addEventListener("mousedown", handleRightClick)
+    document.addEventListener("contextmenu", (e) => e.preventDefault()) // Disable right-click menu
     document.addEventListener("pointerlockchange", () => {
       if (document.pointerLockElement) {
         handleLock()
@@ -669,7 +1014,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     })
 
     return () => {
-      document.removeEventListener("click", handleClick)
+      document.removeEventListener("mousedown", handleClick)
+      document.removeEventListener("mousedown", handleRightClick)
+      document.removeEventListener("contextmenu", (e) => e.preventDefault())
       document.removeEventListener("pointerlockchange", handleLock)
     }
   }, [setIsLocked])
@@ -751,6 +1098,20 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           }}
           onRemove={() => {
             setArrows((prev) => prev.filter((a) => a.id !== arrow.id))
+          }}
+        />
+      ))}
+
+      {/* Render rockets */}
+      {rockets.map((rocket) => (
+        <Rocket
+          key={rocket.id}
+          rocket={rocket}
+          onUpdate={(updatedRocket) => {
+            setRockets((prev) => prev.map((r) => (r.id === rocket.id ? updatedRocket : r)))
+          }}
+          onRemove={() => {
+            setRockets((prev) => prev.filter((r) => r.id !== rocket.id))
           }}
         />
       ))}
@@ -1318,6 +1679,96 @@ function Arrow({ arrow, onUpdate, onRemove }: { arrow: any; onUpdate: (arrow: an
       <mesh position={[0, 0, 0.375]}>
         <cylinderGeometry args={[0.0125, 0.01, 0.025]} />
         <meshStandardMaterial color="#654321" />
+      </mesh>
+    </group>
+  )
+}
+
+function Rocket({ rocket, onUpdate, onRemove }: { rocket: any; onUpdate: (rocket: any) => void; onRemove: () => void }) {
+  const groupRef = useRef<THREE.Group>(null)
+  const [explosions, setExplosions] = useState<any[]>([])
+
+  useFrame((state, delta) => {
+    // Update rocket position - no gravity, just fast travel
+    const newPosition = rocket.position.clone()
+    newPosition.add(rocket.velocity.clone().multiplyScalar(delta))
+
+    // Update rocket group position and rotation
+    if (groupRef.current && rocket.velocity.length() > 0) {
+      groupRef.current.position.copy(newPosition)
+
+      // Point rocket in direction of travel
+      const direction = rocket.velocity.clone().normalize()
+      const up = new THREE.Vector3(0, 1, 0)
+      const quaternion = new THREE.Quaternion()
+
+      const matrix = new THREE.Matrix4()
+      matrix.lookAt(new THREE.Vector3(0, 0, 0), direction, up)
+      quaternion.setFromRotationMatrix(matrix)
+
+      groupRef.current.quaternion.copy(quaternion)
+    }
+
+    // Decrease life and remove if expired or hit ground
+    const newLife = rocket.life - 1
+    if (newLife <= 0 || newPosition.y < 0 || newPosition.length() > 200) {
+      onRemove()
+      return
+    }
+
+    // Update with new state
+    onUpdate({
+      ...rocket,
+      position: newPosition,
+      life: newLife,
+    })
+  })
+
+  return (
+    <group ref={groupRef}>
+      {/* Rocket Body */}
+      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 1.5]} />
+        <meshStandardMaterial color="#FF4500" emissive="#FF4500" emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Rocket Tip */}
+      <mesh position={[0, 0, -0.75]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.05, 0.3]} />
+        <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* Rocket Fins */}
+      <mesh position={[0, 0, 0.6]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[0.2, 0.01, 0.3]} />
+        <meshStandardMaterial color="#8B0000" />
+      </mesh>
+      <mesh position={[0, 0, 0.6]} rotation={[0, 0, -Math.PI / 4]}>
+        <boxGeometry args={[0.2, 0.01, 0.3]} />
+        <meshStandardMaterial color="#8B0000" />
+      </mesh>
+      <mesh position={[0, 0, 0.6]} rotation={[Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.01, 0.2, 0.3]} />
+        <meshStandardMaterial color="#8B0000" />
+      </mesh>
+      <mesh position={[0, 0, 0.6]} rotation={[-Math.PI / 4, 0, 0]}>
+        <boxGeometry args={[0.01, 0.2, 0.3]} />
+        <meshStandardMaterial color="#8B0000" />
+      </mesh>
+
+      {/* Rocket Exhaust Light */}
+      <pointLight position={[0, 0, 1]} intensity={2} distance={5} color="#FF4500" />
+      
+      {/* Rocket Trail Glow */}
+      <mesh position={[0, 0, 1.2]}>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FF4500" 
+          emissive="#FF4500" 
+          emissiveIntensity={0.8} 
+          transparent 
+          opacity={0.6}
+        />
       </mesh>
     </group>
   )
