@@ -15,6 +15,7 @@ export default function ArcheryGame() {
   const [showDragonWarning, setShowDragonWarning] = useState(false)
   const [dragonDefeated, setDragonDefeated] = useState(false)
   const [showVictoryMessage, setShowVictoryMessage] = useState(false)
+  const [dragonEntering, setDragonEntering] = useState(false)
 
   return (
     <div className="w-full h-screen relative">
@@ -37,6 +38,8 @@ export default function ArcheryGame() {
           setDragonDefeated={setDragonDefeated}
           showVictoryMessage={showVictoryMessage}
           setShowVictoryMessage={setShowVictoryMessage}
+          dragonEntering={dragonEntering}
+          setDragonEntering={setDragonEntering}
         />
       </Canvas>
 
@@ -121,6 +124,20 @@ export default function ArcheryGame() {
           </div>
         )}
 
+        {/* Dragon Entrance Warning */}
+        {dragonEntering && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+            <div className="text-center">
+              <div className="bg-black bg-opacity-90 p-8 rounded-lg border-4 border-red-600 shadow-2xl animate-pulse">
+                <h1 className="text-6xl font-bold text-red-400 mb-4 animate-bounce">⚠️ WARNING ⚠️</h1>
+                <h2 className="text-4xl font-bold text-red-300 mb-3">ANCIENT EVIL AWAKENS</h2>
+                <p className="text-2xl text-white mb-2">The realm trembles...</p>
+                <p className="text-xl text-yellow-400">Prepare for the ultimate challenge!</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Dragon Warning */}
         {showDragonWarning && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-50">
@@ -152,7 +169,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning, dragonDefeated, setDragonDefeated, showVictoryMessage, setShowVictoryMessage }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning, dragonDefeated, setDragonDefeated, showVictoryMessage, setShowVictoryMessage, dragonEntering, setDragonEntering }: { 
   setIsLocked: (locked: boolean) => void, 
   playerHealth: number, 
   setPlayerHealth: (health: number) => void, 
@@ -169,7 +186,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   dragonDefeated: boolean,
   setDragonDefeated: (defeated: boolean) => void,
   showVictoryMessage: boolean,
-  setShowVictoryMessage: (show: boolean) => void
+  setShowVictoryMessage: (show: boolean) => void,
+  dragonEntering: boolean,
+  setDragonEntering: (entering: boolean) => void
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
@@ -548,11 +567,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
               // Show small victory message immediately
               setShowVictoryMessage(true)
               
-              // Hide small message and show full victory screen after 3 seconds
+              // Hide small message and show full victory screen after 6 seconds
               setTimeout(() => {
                 setShowVictoryMessage(false)
                 setDragonDefeated(true)
-              }, 3000)
+              }, 6000)
               
             } else {
               setDragon(prev => ({ ...prev, health: newHealth }))
@@ -582,26 +601,56 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     return () => clearInterval(interval)
   }, [])
 
-  // Spawn dragon after 5 kills
+  // Dramatic dragon entrance sequence after 5 kills
   useEffect(() => {
     if (killCount >= 5 && !dragonSpawned) {
       setDragonSpawned(true)
-      setShowDragonWarning(true)
-      setDragon({
-        id: 'dragon',
-        position: [0, 15, -60],
-        health: 5,
-        active: true,
-        attackTimer: 0,
-        currentPosition: [0, 15, -60],
-        targetPosition: [0, 15, -60],
-        phase: 'circling' // circling, attacking, fleeing
-      })
       
-      // Hide dragon warning after 4 seconds
+      // Step 1: Show dramatic entrance warning (3 seconds)
+      setDragonEntering(true)
+      
+      // Step 2: Hide entrance warning and trigger sky change + dragon spawn (after 3 seconds)
+      setTimeout(() => {
+        setDragonEntering(false)
+        setShowDragonWarning(true)
+        
+        // Spawn dragon dramatically from high above
+        setDragon({
+          id: 'dragon',
+          position: [0, 50, -60], // Start much higher for dramatic entrance
+          health: 5,
+          active: true,
+          attackTimer: 0,
+          currentPosition: [0, 50, -60],
+          targetPosition: [0, 15, -60], // Will descend to normal height
+          phase: 'entering' // new phase for entrance
+        })
+        
+        // Add dramatic entrance explosions
+        setExplosions((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1000,
+            position: [0, 45, -60],
+            createdAt: Date.now(),
+          },
+          {
+            id: Date.now() + 1001,
+            position: [-10, 40, -55],
+            createdAt: Date.now() + 500,
+          },
+          {
+            id: Date.now() + 1002,
+            position: [10, 40, -55],
+            createdAt: Date.now() + 1000,
+          },
+        ])
+      }, 3000)
+      
+      // Step 3: Hide dragon warning after entrance is complete (after 7 seconds total)
       setTimeout(() => {
         setShowDragonWarning(false)
-      }, 4000)
+      }, 7000)
     }
   }, [killCount, dragonSpawned])
 
@@ -1941,7 +1990,28 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     // Update dragon's current position based on phase
     let newPosition = [...currentPosition]
     
-    if (dragon.phase === 'circling') {
+    if (dragon.phase === 'entering') {
+      // Dramatic entrance - descend from high above to normal position
+      const targetPos = dragon.targetPosition || [0, 15, -60]
+      const currentPos = new THREE.Vector3(...currentPosition)
+      const target = new THREE.Vector3(...targetPos)
+      
+      // Move towards target position
+      const direction = new THREE.Vector3()
+      direction.subVectors(target, currentPos)
+      
+      if (direction.length() > 2) {
+        // Still descending
+        direction.normalize().multiplyScalar(15 * delta) // Descent speed
+        newPosition[0] += direction.x
+        newPosition[1] += direction.y
+        newPosition[2] += direction.z
+      } else {
+        // Arrived at target, switch to circling
+        dragon.phase = 'circling'
+        newPosition = [...targetPos]
+      }
+    } else if (dragon.phase === 'circling') {
       // Circle around the castle area
       const time = state.clock.elapsedTime * 0.3
       const radius = 25

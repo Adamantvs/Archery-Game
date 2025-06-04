@@ -59,9 +59,19 @@ Dragon Boss Final Boss System - Enhanced with User Feedback
 - ✅ Made dragon death dramatically more spectacular with multiple explosions
 - ✅ All enemies die simultaneously when dragon is defeated (staggered visual effect)
 - ✅ Added small victory popup that appears immediately after dragon death
-- ✅ Full victory screen appears 3 seconds later for better pacing
+- ✅ Full victory screen appears 6 seconds later for extended glory basking
 - ✅ 5 massive explosions surround the dragon during death sequence
 - ✅ All active enemies get killed with dramatic pop effects when dragon dies
+
+## Dragon Entrance Theatrical Enhancements
+- ✅ Added dramatic entrance warning: "ANCIENT EVIL AWAKENS"
+- ✅ Full-screen theatrical warning with bouncing text and dark overlay
+- ✅ 3-second buildup before dragon actually appears
+- ✅ Dragon spawns from high above (y=50) and descends dramatically
+- ✅ Multiple entrance explosions during dragon descent
+- ✅ New "entering" phase with smooth descent animation
+- ✅ Dragon transitions from "entering" to "circling" when reaches target height
+- ✅ Extended warning sequence: 3s entrance + 4s dragon warning = 7s total
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
