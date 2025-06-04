@@ -11,6 +11,8 @@ export default function ArcheryGame() {
   const [score, setScore] = useState(0)
   const [killCount, setKillCount] = useState(0)
   const [dragon, setDragon] = useState<any>(null)
+  const [dragonSpawned, setDragonSpawned] = useState(false)
+  const [showDragonWarning, setShowDragonWarning] = useState(false)
 
   return (
     <div className="w-full h-screen relative">
@@ -25,6 +27,10 @@ export default function ArcheryGame() {
           setKillCount={setKillCount}
           dragon={dragon}
           setDragon={setDragon}
+          dragonSpawned={dragonSpawned}
+          setDragonSpawned={setDragonSpawned}
+          showDragonWarning={showDragonWarning}
+          setShowDragonWarning={setShowDragonWarning}
         />
       </Canvas>
 
@@ -37,7 +43,7 @@ export default function ArcheryGame() {
             <div className="text-white text-sm font-bold mb-1">SCORE</div>
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-400">{score}</div>
-              <div className="text-xs text-gray-300">/ 10 to win</div>
+              <div className="text-xs text-gray-300">Enemy kills: {killCount}/5</div>
             </div>
           </div>
           
@@ -66,11 +72,11 @@ export default function ArcheryGame() {
         </div>
 
         {/* Victory Screen */}
-        {score >= 10 && (
+        {dragon === null && dragonSpawned && (
           <div className="absolute inset-0 bg-green-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
               <h1 className="text-6xl font-bold mb-4 text-green-300">VICTORY!</h1>
-              <p className="text-xl mb-6">You have defeated 10 flying demons and saved the castle!</p>
+              <p className="text-xl mb-6">You have slain the mighty dragon and saved the realm!</p>
               <div className="text-4xl font-bold text-yellow-400 mb-6">Final Score: {score}</div>
               <button 
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
@@ -100,12 +106,12 @@ export default function ArcheryGame() {
         )}
 
         {/* Dragon Warning */}
-        {killCount >= 5 && dragon && dragon.active && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-            <div className="bg-red-900 bg-opacity-90 p-6 rounded-lg border-4 border-red-500 animate-pulse">
-              <h2 className="text-4xl font-bold text-red-300 mb-2">🐉 DRAGON BOSS AWAKENED! 🐉</h2>
-              <p className="text-xl text-white">A mighty dragon has emerged to defend the realm!</p>
-              <p className="text-lg text-yellow-400 mt-2">Health: {dragon.health}/5</p>
+        {showDragonWarning && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-50">
+            <div className="bg-red-900 bg-opacity-95 p-4 rounded-lg border-4 border-red-500 animate-pulse shadow-2xl">
+              <h2 className="text-3xl font-bold text-red-300 mb-1">🐉 DRAGON BOSS AWAKENED! 🐉</h2>
+              <p className="text-lg text-white">A mighty dragon has emerged to defend the realm!</p>
+              {dragon && <p className="text-md text-yellow-400 mt-1">Health: {dragon.health}/5</p>}
             </div>
           </div>
         )}
@@ -122,6 +128,7 @@ export default function ArcheryGame() {
             <p className="text-xs mt-2">Shoot the bomb crates and enemies!</p>
             <p className="text-xs text-yellow-400 mt-2">⚠️ Avoid enemies and explosions - they damage you!</p>
             <p className="text-xs text-red-400 mt-1">🎯 Kill 5 enemies to face the DRAGON BOSS!</p>
+            <p className="text-xs text-green-400 mt-1">🏆 Defeat the dragon to WIN!</p>
           </div>
         )}
       </div>
@@ -129,7 +136,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning }: { 
   setIsLocked: (locked: boolean) => void, 
   playerHealth: number, 
   setPlayerHealth: (health: number) => void, 
@@ -138,7 +145,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   killCount: number,
   setKillCount: (count: number) => void,
   dragon: any,
-  setDragon: (dragon: any) => void
+  setDragon: (dragon: any) => void,
+  dragonSpawned: boolean,
+  setDragonSpawned: (spawned: boolean) => void,
+  showDragonWarning: boolean,
+  setShowDragonWarning: (show: boolean) => void
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
@@ -147,7 +158,6 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   const [enemies, setEnemies] = useState<any[]>([])
   const [enemyPops, setEnemyPops] = useState<any[]>([])
   const [lastDamageTime, setLastDamageTime] = useState(0)
-  const [dragonSpawned, setDragonSpawned] = useState(false)
   const controlsRef = useRef<any>()
 
   // Initialize bombs
@@ -493,6 +503,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   useEffect(() => {
     if (killCount >= 5 && !dragonSpawned) {
       setDragonSpawned(true)
+      setShowDragonWarning(true)
       setDragon({
         id: 'dragon',
         position: [0, 15, -60],
@@ -503,6 +514,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
         targetPosition: [0, 15, -60],
         phase: 'circling' // circling, attacking, fleeing
       })
+      
+      // Hide dragon warning after 4 seconds
+      setTimeout(() => {
+        setShowDragonWarning(false)
+      }, 4000)
     }
   }, [killCount, dragonSpawned])
 
@@ -543,7 +559,13 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
         shadow-camera-bottom={-20}
       />
 
-      <Sky sunPosition={[100, 20, 100]} />
+      <Sky 
+        sunPosition={dragon && dragon.active ? [100, 10, 100] : [100, 20, 100]}
+        turbidity={dragon && dragon.active ? 20 : 10}
+        rayleigh={dragon && dragon.active ? 0.5 : 6}
+        mieCoefficient={dragon && dragon.active ? 0.1 : 0.005}
+        mieDirectionalG={dragon && dragon.active ? 0.95 : 0.8}
+      />
 
       <Player />
       <Crossbow drawn={bowDrawn} />

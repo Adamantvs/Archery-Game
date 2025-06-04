@@ -15,7 +15,7 @@
 - 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
 
 ## Current Task
-Dragon Boss Final Boss System - Completed
+Dragon Boss Final Boss System - Enhanced with User Feedback
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
@@ -35,13 +35,24 @@ Dragon Boss Final Boss System - Completed
 - ✅ Updated game instructions to show dragon boss unlock requirement
 - ✅ Integrated dragon state management with parent component state
 
-## Dragon Boss Features
+## Dragon Boss Features - Enhanced
 - Spawns at position [0, 15, -60] after killing 5 enemies
 - Health: 5 hits to defeat
 - Movement: Circles around castle at radius 25 with vertical bobbing
 - Visual: Massive dark red dragon with glowing effects and health bar
 - Rewards: 10 score points when defeated
-- UI: Dramatic spawn notification and health tracking
+- UI: Dramatic spawn notification at top (disappears after 4 seconds)
+- Win Condition: Defeating dragon (not 10 enemies) triggers victory
+- Environmental: Sky becomes redder and more ominous when dragon appears
+- UI Updates: Score shows enemy kill count (5/5), updated instructions
+
+## Latest Enhancements
+- ✅ Changed win condition from 10 enemy kills to dragon defeat only
+- ✅ Moved dragon warning popup to top of screen instead of center
+- ✅ Made dragon warning temporary (4-second display then disappears)
+- ✅ Added menacing red sky effect when dragon appears (lower sun, higher turbidity)
+- ✅ Updated UI to show enemy kill progress (5/5) instead of total score target
+- ✅ Added clear win instruction: "Defeat the dragon to WIN!"
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
