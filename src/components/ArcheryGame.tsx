@@ -705,72 +705,171 @@ function Crossbow({ drawn }: { drawn: boolean }) {
 
   return (
     <group ref={crossbowRef}>
-      {/* Main wooden stock - simplified */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[0.12, 0.08, 0.9]} />
-        <meshStandardMaterial color="#4A3728" roughness={0.8} metalness={0.1} />
+      {/* Main tactical stock - modern composite design */}
+      <mesh position={[0, 0, -0.1]}>
+        <boxGeometry args={[0.08, 0.06, 0.8]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.8} />
       </mesh>
 
-      {/* Bow Center Mount - connects limbs to stock at the FRONT */}
-      <mesh position={[0, 0.04, 0.35]}>
-        <boxGeometry args={[0.15, 0.08, 0.1]} />
-        <meshStandardMaterial color="#2F2F2F" metalness={0.8} roughness={0.2} />
+      {/* Tactical rail system on top */}
+      <mesh position={[0, 0.04, -0.1]}>
+        <boxGeometry args={[0.04, 0.01, 0.6]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.2} metalness={0.9} />
       </mesh>
 
-      {/* LEFT CROSSBOW LIMB - POSITIONED AT FRONT */}
-      <mesh position={[-0.2, 0.04, 0.35]}>
-        <boxGeometry args={[0.4, 0.08, 0.05]} />
-        <meshStandardMaterial color="#654321" roughness={0.6} />
+      {/* Rail segments for tactical look */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const z = -0.4 + i * 0.1
+        return (
+          <mesh key={i} position={[0, 0.045, z]}>
+            <boxGeometry args={[0.03, 0.005, 0.02]} />
+            <meshStandardMaterial color="#3a3a3a" roughness={0.1} metalness={0.95} />
+          </mesh>
+        )
+      })}
+
+      {/* Advanced bow assembly - carbon fiber limbs */}
+      <mesh position={[0, 0.02, 0.4]}>
+        <boxGeometry args={[0.2, 0.12, 0.08]} />
+        <meshStandardMaterial color="#0a0a0a" roughness={0.1} metalness={0.9} />
       </mesh>
 
-      {/* RIGHT CROSSBOW LIMB - POSITIONED AT FRONT */}
-      <mesh position={[0.2, 0.04, 0.35]}>
-        <boxGeometry args={[0.4, 0.08, 0.05]} />
-        <meshStandardMaterial color="#654321" roughness={0.6} />
+      {/* High-tech limbs - curved design */}
+      <mesh position={[-0.25, 0.02, 0.4]} rotation={[0, 0, 0.1]}>
+        <boxGeometry args={[0.5, 0.04, 0.03]} />
+        <meshStandardMaterial 
+          color="#1a1a1a" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#001122"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+      <mesh position={[0.25, 0.02, 0.4]} rotation={[0, 0, -0.1]}>
+        <boxGeometry args={[0.5, 0.04, 0.03]} />
+        <meshStandardMaterial 
+          color="#1a1a1a" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#001122"
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
-      {/* Limb Connection Reinforcements */}
-      <mesh position={[-0.1, 0.04, 0.35]}>
-        <boxGeometry args={[0.03, 0.06, 0.04]} />
-        <meshStandardMaterial color="#2F2F2F" metalness={0.7} roughness={0.3} />
+      {/* Limb tips with high-tech cams */}
+      <mesh position={[-0.45, 0.02, 0.4]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.02]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.5} />
       </mesh>
-      <mesh position={[0.1, 0.04, 0.35]}>
-        <boxGeometry args={[0.03, 0.06, 0.04]} />
-        <meshStandardMaterial color="#2F2F2F" metalness={0.7} roughness={0.3} />
-      </mesh>
-
-      {/* Bowstring - PROPER STRING AT FRONT connecting limb tips */}
-      <mesh position={[0, 0.04, drawn ? 0.32 : 0.35]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.002, 0.002, 0.4]} />
-        <meshStandardMaterial color="#E6D7C3" />
+      <mesh position={[0.45, 0.02, 0.4]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.02]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.5} />
       </mesh>
 
-      {/* String attachment points at limb tips */}
-      <mesh position={[-0.2, 0.04, 0.35]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.01]} />
-        <meshStandardMaterial color="#8B4513" />
-      </mesh>
-      <mesh position={[0.2, 0.04, 0.35]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.01]} />
-        <meshStandardMaterial color="#8B4513" />
-      </mesh>
-
-      {/* Trigger mechanism - simplified */}
-      <mesh position={[0, -0.06, 0.05]}>
-        <boxGeometry args={[0.02, 0.03, 0.01]} />
-        <meshStandardMaterial color="#2F2F2F" metalness={0.7} roughness={0.3} />
+      {/* High-tech bowstring with energy effect */}
+      <mesh position={[0, 0.02, drawn ? 0.37 : 0.4]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.003, 0.003, 0.9]} />
+        <meshStandardMaterial 
+          color="#00ffff" 
+          emissive="#00ffff" 
+          emissiveIntensity={1.5}
+          transparent={true}
+          opacity={0.8}
+        />
       </mesh>
 
-      {/* Trigger guard - simplified */}
-      <mesh position={[0, -0.04, 0.05]}>
-        <torusGeometry args={[0.035, 0.006, 8, 16]} />
-        <meshStandardMaterial color="#2F2F2F" metalness={0.9} roughness={0.1} />
+      {/* Scope/sight system */}
+      <mesh position={[0, 0.08, 0.2]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.15]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.1} metalness={0.9} />
+      </mesh>
+      
+      {/* Scope lens */}
+      <mesh position={[0, 0.08, 0.275]}>
+        <cylinderGeometry args={[0.018, 0.018, 0.01]} />
+        <meshStandardMaterial 
+          color="#0066ff" 
+          emissive="#0066ff" 
+          emissiveIntensity={0.8}
+          transparent={true}
+          opacity={0.7}
+        />
       </mesh>
 
-      {/* Crossbow butt/shoulder rest - simplified */}
-      <mesh position={[0, 0, -0.5]}>
-        <boxGeometry args={[0.14, 0.1, 0.12]} />
-        <meshStandardMaterial color="#4A3728" roughness={0.8} />
+      {/* Tactical grip with texture */}
+      <mesh position={[0, -0.04, 0.1]}>
+        <cylinderGeometry args={[0.025, 0.02, 0.12]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.9} metalness={0.3} />
+      </mesh>
+
+      {/* Advanced trigger assembly */}
+      <mesh position={[0, -0.08, 0.1]}>
+        <boxGeometry args={[0.015, 0.04, 0.008]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Trigger guard - tactical style */}
+      <mesh position={[0, -0.06, 0.1]}>
+        <torusGeometry args={[0.04, 0.008, 8, 16]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
+      </mesh>
+
+      {/* Stock with tactical pattern */}
+      <mesh position={[0, -0.01, -0.5]}>
+        <boxGeometry args={[0.1, 0.08, 0.15]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.7} />
+      </mesh>
+
+      {/* Shoulder pad */}
+      <mesh position={[0, 0, -0.58]}>
+        <boxGeometry args={[0.12, 0.1, 0.03]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.8} metalness={0.5} />
+      </mesh>
+
+      {/* Side accessory rails */}
+      <mesh position={[-0.05, 0, 0.1]}>
+        <boxGeometry args={[0.008, 0.03, 0.3]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.2} metalness={0.9} />
+      </mesh>
+      <mesh position={[0.05, 0, 0.1]}>
+        <boxGeometry args={[0.008, 0.03, 0.3]} />
+        <meshStandardMaterial color="#3a3a3a" roughness={0.2} metalness={0.9} />
+      </mesh>
+
+      {/* Tactical light/laser */}
+      <mesh position={[-0.06, -0.02, 0.25]}>
+        <cylinderGeometry args={[0.008, 0.008, 0.04]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.1} metalness={0.9} />
+      </mesh>
+      
+      {/* Light beam effect */}
+      <mesh position={[-0.06, -0.02, 0.27]}>
+        <cylinderGeometry args={[0.006, 0.006, 0.01]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          emissive="#ffffff" 
+          emissiveIntensity={2}
+          transparent={true}
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* Energy core in the center */}
+      <mesh position={[0, 0, 0.1]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshStandardMaterial 
+          color="#00ff44" 
+          emissive="#00ff44" 
+          emissiveIntensity={1.5}
+          transparent={true}
+          opacity={0.8}
+        />
+      </mesh>
+
+      {/* Recoil dampeners */}
+      <mesh position={[0, 0.02, 0.5]}>
+        <cylinderGeometry args={[0.015, 0.02, 0.06]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.4} />
       </mesh>
     </group>
   )
