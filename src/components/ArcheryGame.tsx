@@ -13,6 +13,8 @@ export default function ArcheryGame() {
   const [dragon, setDragon] = useState<any>(null)
   const [dragonSpawned, setDragonSpawned] = useState(false)
   const [showDragonWarning, setShowDragonWarning] = useState(false)
+  const [dragonDefeated, setDragonDefeated] = useState(false)
+  const [showVictoryMessage, setShowVictoryMessage] = useState(false)
 
   return (
     <div className="w-full h-screen relative">
@@ -31,6 +33,10 @@ export default function ArcheryGame() {
           setDragonSpawned={setDragonSpawned}
           showDragonWarning={showDragonWarning}
           setShowDragonWarning={setShowDragonWarning}
+          dragonDefeated={dragonDefeated}
+          setDragonDefeated={setDragonDefeated}
+          showVictoryMessage={showVictoryMessage}
+          setShowVictoryMessage={setShowVictoryMessage}
         />
       </Canvas>
 
@@ -71,8 +77,18 @@ export default function ArcheryGame() {
           </div>
         </div>
 
-        {/* Victory Screen */}
-        {dragon === null && dragonSpawned && (
+        {/* Small Victory Message */}
+        {showVictoryMessage && !dragonDefeated && (
+          <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-50">
+            <div className="bg-green-900 bg-opacity-95 p-4 rounded-lg border-4 border-green-500 animate-pulse shadow-2xl">
+              <h2 className="text-2xl font-bold text-green-300 mb-1">🐉 DRAGON SLAIN! 🐉</h2>
+              <p className="text-lg text-white">Victory is yours, brave archer!</p>
+            </div>
+          </div>
+        )}
+
+        {/* Full Victory Screen */}
+        {dragonDefeated && (
           <div className="absolute inset-0 bg-green-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
               <h1 className="text-6xl font-bold mb-4 text-green-300">VICTORY!</h1>
@@ -136,7 +152,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, showDragonWarning, setShowDragonWarning, dragonDefeated, setDragonDefeated, showVictoryMessage, setShowVictoryMessage }: { 
   setIsLocked: (locked: boolean) => void, 
   playerHealth: number, 
   setPlayerHealth: (health: number) => void, 
@@ -149,7 +165,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   dragonSpawned: boolean,
   setDragonSpawned: (spawned: boolean) => void,
   showDragonWarning: boolean,
-  setShowDragonWarning: (show: boolean) => void
+  setShowDragonWarning: (show: boolean) => void,
+  dragonDefeated: boolean,
+  setDragonDefeated: (defeated: boolean) => void,
+  showVictoryMessage: boolean,
+  setShowVictoryMessage: (show: boolean) => void
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
@@ -460,17 +480,80 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
             // Damage dragon
             const newHealth = dragon.health - 1
             if (newHealth <= 0) {
-              // Dragon defeated!
+              // Dragon defeated - DRAMATIC DEATH!
+              const dragonPos = dragon.currentPosition || dragon.position
+              
+              // Multiple massive explosions at dragon location
+              setExplosions((prev) => [
+                ...prev,
+                // Main dragon explosion
+                {
+                  id: Date.now() + 1,
+                  position: dragonPos,
+                  createdAt: Date.now(),
+                },
+                // Secondary explosions around dragon
+                {
+                  id: Date.now() + 2,
+                  position: [dragonPos[0] + 5, dragonPos[1], dragonPos[2]],
+                  createdAt: Date.now() + 100,
+                },
+                {
+                  id: Date.now() + 3,
+                  position: [dragonPos[0] - 5, dragonPos[1], dragonPos[2]],
+                  createdAt: Date.now() + 200,
+                },
+                {
+                  id: Date.now() + 4,
+                  position: [dragonPos[0], dragonPos[1] + 5, dragonPos[2]],
+                  createdAt: Date.now() + 300,
+                },
+                {
+                  id: Date.now() + 5,
+                  position: [dragonPos[0], dragonPos[1], dragonPos[2] + 5],
+                  createdAt: Date.now() + 400,
+                },
+              ])
+
+              // Massive dramatic dragon death effect
               setEnemyPops((prev) => [
                 ...prev,
                 {
                   id: Date.now(),
-                  position: dragon.currentPosition || dragon.position,
+                  position: dragonPos,
                   createdAt: Date.now(),
                 },
               ])
+
+              // Kill ALL remaining enemies simultaneously
+              enemies.forEach((enemy) => {
+                if (enemy.active) {
+                  setEnemyPops((prev) => [
+                    ...prev,
+                    {
+                      id: Date.now() + enemy.id * 100,
+                      position: enemy.currentPosition || enemy.position,
+                      createdAt: Date.now() + (enemy.id * 200), // Stagger slightly for visual effect
+                    },
+                  ])
+                }
+              })
+              
+              // Deactivate all enemies
+              setEnemies((prev) => prev.map(e => ({ ...e, active: false })))
+              
               setDragon(null)
               setScore(prev => prev + 10) // Big score bonus for dragon
+              
+              // Show small victory message immediately
+              setShowVictoryMessage(true)
+              
+              // Hide small message and show full victory screen after 3 seconds
+              setTimeout(() => {
+                setShowVictoryMessage(false)
+                setDragonDefeated(true)
+              }, 3000)
+              
             } else {
               setDragon(prev => ({ ...prev, health: newHealth }))
             }
