@@ -363,6 +363,7 @@ function Game({ setIsLocked }: { setIsLocked: (locked: boolean) => void }) {
           key={enemy.id} 
           position={enemy.position} 
           enemy={enemy} 
+          playerPosition={controlsRef.current?.getObject()?.position}
           onPositionUpdate={(newPosition) => {
             setEnemies(prev => prev.map(e => 
               e.id === enemy.id ? { ...e, currentPosition: newPosition } : e
@@ -1092,12 +1093,15 @@ function Castle() {
   )
 }
 
-function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enemy: any, onPositionUpdate: (position: number[]) => void }) {
+function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position: number[], enemy: any, playerPosition?: THREE.Vector3, onPositionUpdate: (position: number[]) => void }) {
   const enemyRef = useRef<THREE.Group>(null)
   const [bobOffset, setBobOffset] = useState(0)
   const [currentPosition, setCurrentPosition] = useState(new THREE.Vector3(...position))
   const [targetPosition, setTargetPosition] = useState(new THREE.Vector3(...position))
   const [nextTargetTime, setNextTargetTime] = useState(Date.now() + Math.random() * 3000)
+  const [isFollowingPlayer, setIsFollowingPlayer] = useState(false)
+  const [baseHeight, setBaseHeight] = useState(0.5)
+  const [targetHeight, setTargetHeight] = useState(0.5)
 
   // Castle collision detection function
   const checkCastleCollision = (pos: THREE.Vector3) => {
@@ -1122,62 +1126,103 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
     return false
   }
 
-  // Wandering AI and bobbing animation
+  // Flying and player-following AI
   useFrame((state, delta) => {
     if (enemyRef.current && enemy.active) {
-      // Bobbing animation
+      // Wing flapping animation
       setBobOffset((prev) => prev + delta * 3)
       
-      // Wandering logic - pick new target every 2-5 seconds
-      if (Date.now() > nextTargetTime) {
-        let attempts = 0
-        let validTarget = false
-        let castleX, castleZ
-        
-        // Try to find a valid target that doesn't collide with castle
-        while (!validTarget && attempts < 10) {
-          // Define castle area bounds (around castle at [0, 0, -30]) - much larger radius
-          castleX = 0 + (Math.random() - 0.5) * 80  // -40 to 40 around castle
-          castleZ = -30 + (Math.random() - 0.5) * 60  // -60 to 0 around castle
-          
-          const testTarget = new THREE.Vector3(castleX, 0.5, castleZ)
-          if (!checkCastleCollision(testTarget)) {
-            validTarget = true
-          }
-          attempts++
+      // Check for player proximity (within 15 units)
+      let playerDetected = false
+      if (playerPosition) {
+        const distanceToPlayer = currentPosition.distanceTo(playerPosition)
+        if (distanceToPlayer < 15) {
+          playerDetected = true
+          setIsFollowingPlayer(true)
+        } else if (distanceToPlayer > 25) {
+          // Stop following if player gets too far away
+          setIsFollowingPlayer(false)
         }
-        
-        if (validTarget) {
-          setTargetPosition(new THREE.Vector3(castleX, 0.5, castleZ))
-        }
-        setNextTargetTime(Date.now() + 2000 + Math.random() * 3000) // 2-5 seconds
       }
       
-      // Move towards target
+      // AI behavior based on player detection
+      if (isFollowingPlayer && playerPosition) {
+        // Follow player behavior
+        const playerTarget = playerPosition.clone()
+        // Fly higher when following player
+        playerTarget.y += 2 + Math.sin(state.clock.elapsedTime + enemy.id) * 1
+        setTargetPosition(playerTarget)
+        setTargetHeight(2 + Math.sin(state.clock.elapsedTime + enemy.id) * 1)
+      } else {
+        // Normal wandering behavior with random height changes
+        if (Date.now() > nextTargetTime) {
+          let attempts = 0
+          let validTarget = false
+          let castleX, castleZ
+          
+          // Try to find a valid target that doesn't collide with castle
+          while (!validTarget && attempts < 10) {
+            // Define castle area bounds (around castle at [0, 0, -30]) - much larger radius
+            castleX = 0 + (Math.random() - 0.5) * 80  // -40 to 40 around castle
+            castleZ = -30 + (Math.random() - 0.5) * 60  // -60 to 0 around castle
+            
+            const testTarget = new THREE.Vector3(castleX, 0.5, castleZ)
+            if (!checkCastleCollision(testTarget)) {
+              validTarget = true
+            }
+            attempts++
+          }
+          
+          if (validTarget) {
+            // Random flight height between 0.5 and 4 meters
+            const randomHeight = 0.5 + Math.random() * 3.5
+            setTargetPosition(new THREE.Vector3(castleX, randomHeight, castleZ))
+            setTargetHeight(randomHeight)
+          }
+          setNextTargetTime(Date.now() + 2000 + Math.random() * 3000) // 2-5 seconds
+        }
+      }
+      
+      // Move towards target (including vertical movement)
       const direction = targetPosition.clone().sub(currentPosition)
-      direction.y = 0 // Keep on ground level
       
       if (direction.length() > 0.5) {
         direction.normalize()
-        const moveVector = direction.multiplyScalar(enemy.moveSpeed * delta)
+        const moveSpeed = isFollowingPlayer ? enemy.moveSpeed * 1.5 : enemy.moveSpeed // Faster when following
+        const moveVector = direction.multiplyScalar(moveSpeed * delta)
         const newPosition = currentPosition.clone().add(moveVector)
         
-        // Check for castle collision before moving
-        if (!checkCastleCollision(newPosition)) {
+        // Check for castle collision before moving (only horizontal collision)
+        const horizontalNewPos = newPosition.clone()
+        horizontalNewPos.y = 0.5 // Check collision at ground level
+        
+        if (!checkCastleCollision(horizontalNewPos)) {
           setCurrentPosition(newPosition)
           onPositionUpdate([newPosition.x, newPosition.y, newPosition.z])
         } else {
           // If collision detected, pick a new target away from castle
           const escapeX = currentPosition.x > 0 ? currentPosition.x + 5 : currentPosition.x - 5
           const escapeZ = currentPosition.z > -30 ? currentPosition.z + 5 : currentPosition.z - 5
-          setTargetPosition(new THREE.Vector3(escapeX, 0.5, escapeZ))
+          const escapeHeight = 1 + Math.random() * 2 // Fly up to escape
+          setTargetPosition(new THREE.Vector3(escapeX, escapeHeight, escapeZ))
+          setTargetHeight(escapeHeight)
           setNextTargetTime(Date.now() + 1000) // Try new target soon
         }
       }
       
-      // Update enemy position
+      // Update enemy position with flight bobbing
       enemyRef.current.position.copy(currentPosition)
-      enemyRef.current.position.y = 0.5 + Math.sin(bobOffset) * 0.1
+      enemyRef.current.position.y += Math.sin(bobOffset) * 0.2 // Larger flight bobbing
+      
+      // Face movement direction
+      if (direction.length() > 0.1) {
+        const lookDirection = direction.normalize()
+        enemyRef.current.lookAt(
+          enemyRef.current.position.x + lookDirection.x,
+          enemyRef.current.position.y,
+          enemyRef.current.position.z + lookDirection.z
+        )
+      }
     }
   })
 
@@ -1313,6 +1358,81 @@ function Enemy({ position, enemy, onPositionUpdate }: { position: number[], enem
           </mesh>
         )
       })}
+
+      {/* Bat Wings */}
+      <group position={[0, 0.5, -0.1]}>
+        {/* Left Wing */}
+        <group position={[-0.3, 0, 0]} rotation={[0, 0, Math.sin(bobOffset * 2) * 0.3]}>
+          {/* Wing membrane */}
+          <mesh position={[-0.2, 0, 0]} rotation={[0, 0, 0.2]}>
+            <planeGeometry args={[0.4, 0.6]} />
+            <meshStandardMaterial 
+              color="#1A0000" 
+              transparent={true}
+              opacity={0.8}
+              side={THREE.DoubleSide}
+              emissive="#660000"
+              emissiveIntensity={0.2}
+            />
+          </mesh>
+          
+          {/* Wing bones/fingers */}
+          <mesh position={[-0.1, 0.2, 0]} rotation={[0, 0, 0.1]}>
+            <cylinderGeometry args={[0.008, 0.008, 0.3]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          <mesh position={[-0.2, 0.1, 0]} rotation={[0, 0, 0.3]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.25]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          <mesh position={[-0.3, -0.1, 0]} rotation={[0, 0, 0.5]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.2]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          
+          {/* Wing claw */}
+          <mesh position={[-0.4, 0.2, 0]}>
+            <coneGeometry args={[0.02, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        </group>
+
+        {/* Right Wing */}
+        <group position={[0.3, 0, 0]} rotation={[0, 0, -Math.sin(bobOffset * 2) * 0.3]}>
+          {/* Wing membrane */}
+          <mesh position={[0.2, 0, 0]} rotation={[0, 0, -0.2]}>
+            <planeGeometry args={[0.4, 0.6]} />
+            <meshStandardMaterial 
+              color="#1A0000" 
+              transparent={true}
+              opacity={0.8}
+              side={THREE.DoubleSide}
+              emissive="#660000"
+              emissiveIntensity={0.2}
+            />
+          </mesh>
+          
+          {/* Wing bones/fingers */}
+          <mesh position={[0.1, 0.2, 0]} rotation={[0, 0, -0.1]}>
+            <cylinderGeometry args={[0.008, 0.008, 0.3]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          <mesh position={[0.2, 0.1, 0]} rotation={[0, 0, -0.3]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.25]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          <mesh position={[0.3, -0.1, 0]} rotation={[0, 0, -0.5]}>
+            <cylinderGeometry args={[0.006, 0.006, 0.2]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} />
+          </mesh>
+          
+          {/* Wing claw */}
+          <mesh position={[0.4, 0.2, 0]}>
+            <coneGeometry args={[0.02, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          </mesh>
+        </group>
+      </group>
     </group>
   )
 }

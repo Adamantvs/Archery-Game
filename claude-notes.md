@@ -8,9 +8,11 @@
 - 2b16e98 feat: increase enemy wandering radius around castle
 - 1608062 feat: fix collision detection, add crate regeneration, and redesign enemies
 - c653b53 feat: fix enemy death explosions, add castle collision detection, and ensure proper regeneration
+- f51bc8e feat: enhance enemies with angry faces, increased speed, more crates, and explosive damage
+- f34b13b feat: redesign crossbow with high-tech tactical aesthetics
 
 ## Current Task
-Completed multiple archery game enhancements and bug fixes.
+Completed comprehensive archery game enhancements.
 
 ## Progress
 - ✅ Increased enemy wandering radius for more dynamic gameplay
@@ -20,6 +22,12 @@ Completed multiple archery game enhancements and bug fixes.
 - ✅ Fixed enemy death explosions to appear at correct locations
 - ✅ Added comprehensive castle wall collision detection preventing enemies from walking through structures
 - ✅ Fixed enemy regeneration system to properly respawn enemies after 10 seconds in valid locations
+- ✅ Enhanced enemies with angry facial expressions (angled eyebrows, snarling mouths, 5 sharp fangs)
+- ✅ Increased enemy movement speed from 1-2 to 3-5 units for more aggressive behavior
+- ✅ Expanded wandering radius from 50x40 to 80x60 units for larger battlefield coverage
+- ✅ Added 9 additional bomb crates (14 total) positioned closer to enemy patrol areas
+- ✅ Implemented crate explosion damage system that kills enemies within 6-unit radius
+- ✅ Redesigned crossbow with high-tech tactical aesthetics including rails, scopes, energy effects, and modern styling
 
 ## Important Context
 - Template includes React + Vite + TanStack Router frontend with Convex backend and Clerk auth
