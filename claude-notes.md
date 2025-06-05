@@ -10,6 +10,7 @@
 - Implemented simplified time-based booster system (no fuel needed)
 - Fixed booster system: proper double-click detection + hold-to-maintain behavior
 - Removed height limit for smooth booster experience
+- Added dragon fire attack system with glowing projectiles and collision detection
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats

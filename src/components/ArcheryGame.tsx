@@ -1453,6 +1453,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
         <FireProjectile
           key={fire.id}
           fire={fire}
+          playerPosition={controlsRef.current?.getObject()?.position}
           onUpdate={(updatedFire) => {
             setFireProjectiles((prev: any[]) => prev.map((f) => (f.id === fire.id ? updatedFire : f)))
           }}
@@ -2200,13 +2201,25 @@ function Rocket({ rocket, onUpdate, onRemove }: { rocket: any; onUpdate: (rocket
   )
 }
 
-function FireProjectile({ fire, onUpdate, onRemove }: { fire: any; onUpdate: (fire: any) => void; onRemove: () => void }) {
+function FireProjectile({ fire, onUpdate, onRemove, playerPosition }: { fire: any; onUpdate: (fire: any) => void; onRemove: () => void; playerPosition?: THREE.Vector3 }) {
   const groupRef = useRef<THREE.Group>(null)
 
   useFrame((_state, delta) => {
-    // Update fire projectile position - no gravity, just straight travel
+    // Update fire projectile position with optional tracking
     const newPosition = fire.position.clone ? fire.position.clone() : new THREE.Vector3(...fire.position)
-    const velocity = new THREE.Vector3(...fire.velocity)
+    let velocity = new THREE.Vector3(...fire.velocity)
+    
+    // If tracking is enabled and we have player position, adjust velocity slightly
+    if (fire.isTracking && playerPosition && fire.trackingStrength) {
+      const directionToPlayer = new THREE.Vector3()
+      directionToPlayer.subVectors(playerPosition, newPosition)
+      directionToPlayer.normalize()
+      
+      // Blend current velocity with direction to player
+      const trackingForce = directionToPlayer.multiplyScalar(fire.trackingStrength)
+      velocity.add(trackingForce)
+      velocity.normalize().multiplyScalar(15) // Maintain consistent speed
+    }
     
     newPosition.add(velocity.clone().multiplyScalar(delta))
 
@@ -2224,10 +2237,11 @@ function FireProjectile({ fire, onUpdate, onRemove }: { fire: any; onUpdate: (fi
       groupRef.current.position.copy(newPosition)
     }
 
-    // Update the fire state
+    // Update the fire state with new velocity
     onUpdate({
       ...fire,
       position: newPosition,
+      velocity: [velocity.x, velocity.y, velocity.z],
       age: newAge
     })
   })
@@ -3378,24 +3392,37 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate, onFireAttack }: 
     setWingFlap((prev: number) => prev + delta * 8)
     setAttackTimer((prev: number) => prev + delta)
 
-    // Fire attack every 3 seconds when circling
+    // Fire attack every 3 seconds when circling - shoot 3 tracking fire balls
     if (dragon.phase === 'circling' && attackTimer > 3) {
-      // Calculate direction to player
       const dragonPos = new THREE.Vector3(...currentPosition)
-      const direction = new THREE.Vector3()
-      direction.subVectors(playerPosition, dragonPos)
-      direction.normalize()
+      
+      // Create 3 fire projectiles with slight spread and tracking behavior
+      for (let i = 0; i < 3; i++) {
+        // Calculate base direction to player
+        const direction = new THREE.Vector3()
+        direction.subVectors(playerPosition, dragonPos)
+        direction.normalize()
+        
+        // Add spread to each projectile
+        const spreadAngle = (i - 1) * 0.3 // -0.3, 0, +0.3 radians spread
+        const spreadDirection = direction.clone()
+        spreadDirection.x += Math.sin(spreadAngle) * 0.5
+        spreadDirection.z += Math.cos(spreadAngle) * 0.5
+        spreadDirection.normalize()
 
-      // Create fire projectile
-      const fireProjectile = {
-        id: Date.now() + Math.random(),
-        position: [...currentPosition],
-        velocity: [direction.x * 20, direction.y * 20, direction.z * 20], // Fast fire projectile
-        damage: 25,
-        age: 0
+        const fireProjectile = {
+          id: Date.now() + Math.random() + i,
+          position: [...currentPosition],
+          velocity: [spreadDirection.x * 15, spreadDirection.y * 15, spreadDirection.z * 15], // Slightly slower for tracking
+          damage: 20, // Reduced damage since there are 3 projectiles
+          age: 0,
+          isTracking: true, // Enable tracking behavior
+          trackingStrength: 0.3 // How much it tracks (0 = straight line, 1 = full tracking)
+        }
+
+        onFireAttack(fireProjectile)
       }
-
-      onFireAttack(fireProjectile)
+      
       setAttackTimer(0) // Reset attack timer
     }
 
