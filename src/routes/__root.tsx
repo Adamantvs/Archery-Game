@@ -95,7 +95,7 @@ function RootComponent() {
                     </div>
                   </header>
                   {/* Main content */}
-                  <main className="flex-1 p-4 prose prose-invert max-w-none">
+                  <main className="flex-1 prose prose-invert max-w-none overflow-hidden">
                     <Outlet />
                   </main>
                   <footer className="footer footer-center p-4 text-base-content">

@@ -5,6 +5,86 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { PointerLockControls, Sky } from "@react-three/drei"
 import * as THREE from "three"
 
+function DynamicSky({ dragon, victoryTransition }: { dragon: any, victoryTransition: boolean }) {
+  const [skyTransition, setSkyTransition] = useState(0)
+  
+  useEffect(() => {
+    if (victoryTransition) {
+      // 5-second smooth transition from dramatic sunset to peaceful daytime
+      const startTime = Date.now()
+      const duration = 5000 // 5 seconds
+      
+      const animateTransition = () => {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        
+        // Smooth easing function for natural transition
+        const easedProgress = progress * progress * (3 - 2 * progress)
+        setSkyTransition(easedProgress)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateTransition)
+        }
+      }
+      
+      animateTransition()
+    }
+  }, [victoryTransition])
+  
+  // Calculate sky parameters based on dragon state and victory transition
+  const getSkyParams = () => {
+    if (victoryTransition) {
+      // Interpolate between dramatic and peaceful sky
+      const dramaticSun = [30, 6, 80]
+      const peacefulSun = [100, 25, 50]
+      
+      const sunPosition = [
+        dramaticSun[0] + (peacefulSun[0] - dramaticSun[0]) * skyTransition,
+        dramaticSun[1] + (peacefulSun[1] - dramaticSun[1]) * skyTransition,
+        dramaticSun[2] + (peacefulSun[2] - dramaticSun[2]) * skyTransition
+      ]
+      
+      return {
+        sunPosition: sunPosition as [number, number, number],
+        turbidity: 25 + (-17) * skyTransition, // 25 -> 8
+        rayleigh: 0.3 + (2.2) * skyTransition, // 0.3 -> 2.5
+        mieCoefficient: 0.2 + (-0.19) * skyTransition, // 0.2 -> 0.01
+        mieDirectionalG: 0.95 + (-0.2) * skyTransition // 0.95 -> 0.75
+      }
+    } else if (dragon && dragon.active) {
+      // Dramatic dragon sky
+      return {
+        sunPosition: [30, 6, 80] as [number, number, number],
+        turbidity: 25,
+        rayleigh: 0.3,
+        mieCoefficient: 0.2,
+        mieDirectionalG: 0.95
+      }
+    } else {
+      // Normal peaceful sky
+      return {
+        sunPosition: [50, 8, 100] as [number, number, number],
+        turbidity: 8,
+        rayleigh: 1.5,
+        mieCoefficient: 0.01,
+        mieDirectionalG: 0.7
+      }
+    }
+  }
+  
+  const skyParams = getSkyParams()
+  
+  return (
+    <Sky 
+      sunPosition={skyParams.sunPosition}
+      turbidity={skyParams.turbidity}
+      rayleigh={skyParams.rayleigh}
+      mieCoefficient={skyParams.mieCoefficient}
+      mieDirectionalG={skyParams.mieDirectionalG}
+    />
+  )
+}
+
 export default function ArcheryGame() {
   const [isLocked, setIsLocked] = useState(false)
   const [playerHealth, setPlayerHealth] = useState(100)
@@ -18,6 +98,8 @@ export default function ArcheryGame() {
   const [showFullVictory, setShowFullVictory] = useState(false)
   const [_dragonEntering, setDragonEntering] = useState(false)
   const [confetti, setConfetti] = useState<any[]>([])
+  const [damageFlash, setDamageFlash] = useState(0)
+  const [victoryTransition, setVictoryTransition] = useState(false)
 
   return (
     <div className="w-full h-screen relative">
@@ -41,8 +123,33 @@ export default function ArcheryGame() {
           confetti={confetti}
           setConfetti={setConfetti}
           setShowFullVictory={setShowFullVictory}
+          setDamageFlash={setDamageFlash}
+          setVictoryTransition={setVictoryTransition}
+          victoryTransition={victoryTransition}
         />
       </Canvas>
+
+      {/* Damage Vignette Effect */}
+      {damageFlash > 0 && (
+        <div 
+          className="absolute inset-0 pointer-events-none transition-opacity duration-1000"
+          style={{
+            background: `radial-gradient(circle at center, transparent 30%, rgba(220, 38, 38, ${Math.min(damageFlash * 0.4, 0.8)}) 80%)`,
+            opacity: damageFlash
+          }}
+        />
+      )}
+
+      {/* Low Health Persistent Vignette */}
+      {playerHealth < 30 && playerHealth > 0 && (
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at center, transparent 20%, rgba(139, 69, 19, ${0.3 + (30 - playerHealth) * 0.02}) 90%)`,
+            opacity: 0.6 + (30 - playerHealth) * 0.02
+          }}
+        />
+      )}
 
       {/* UI Overlay */}
       <div className="absolute inset-0 pointer-events-none">
@@ -184,7 +291,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory, setDamageFlash, setVictoryTransition, victoryTransition }: { 
   setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
   setPlayerHealth: Dispatch<SetStateAction<number>>, 
@@ -202,7 +309,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   _setDragonEntering: Dispatch<SetStateAction<boolean>>,
   confetti: any[],
   setConfetti: Dispatch<SetStateAction<any[]>>,
-  setShowFullVictory: Dispatch<SetStateAction<boolean>>
+  setShowFullVictory: Dispatch<SetStateAction<boolean>>,
+  setDamageFlash: Dispatch<SetStateAction<number>>,
+  setVictoryTransition: Dispatch<SetStateAction<boolean>>,
+  victoryTransition: boolean
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -330,8 +440,15 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     if (now - lastDamageTime > 1000) { // 1 second damage cooldown
       setPlayerHealth((prev: number) => Math.max(0, prev - damage))
       setLastDamageTime(now)
+      
+      // Trigger damage vignette effect
+      setDamageFlash(1.0)
+      setTimeout(() => setDamageFlash(0.6), 100)
+      setTimeout(() => setDamageFlash(0.3), 300)
+      setTimeout(() => setDamageFlash(0.1), 600)
+      setTimeout(() => setDamageFlash(0), 1000)
     }
-  }, [lastDamageTime, setPlayerHealth])
+  }, [lastDamageTime, setPlayerHealth, setDamageFlash])
 
   // Check for collisions (arrows, enemies, explosions)
   useEffect(() => {
@@ -654,6 +771,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               setShowVictoryMessage(true)
               setDragonDefeated(true)
               
+              // Start 5-second sky transition to peaceful daytime
+              setVictoryTransition(true)
+              
               // STAGE 2: Full victory screen after exactly 10 seconds
               setTimeout(() => {
                 setShowFullVictory(true)
@@ -932,6 +1052,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               setShowVictoryMessage(true)
               setDragonDefeated(true)
               
+              // Start 5-second sky transition to peaceful daytime
+              setVictoryTransition(true)
+              
               // STAGE 2: Full victory screen after exactly 10 seconds
               setTimeout(() => {
                 setShowFullVictory(true)
@@ -1119,13 +1242,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       {/* Atmospheric Fog for volumetric feel */}
       <fog attach="fog" args={['#87CEEB', 20, 200]} />
 
-      {/* Cinematic Sky with dramatic low-angle golden hour */}
-      <Sky 
-        sunPosition={dragon && dragon.active ? [30, 6, 80] : [50, 8, 100]}
-        turbidity={dragon && dragon.active ? 25 : 8}
-        rayleigh={dragon && dragon.active ? 0.3 : 1.5}
-        mieCoefficient={dragon && dragon.active ? 0.2 : 0.01}
-        mieDirectionalG={dragon && dragon.active ? 0.95 : 0.7}
+      {/* Dynamic Sky with Victory Transition */}
+      <DynamicSky 
+        dragon={dragon}
+        victoryTransition={victoryTransition}
       />
 
       <Player />
@@ -2710,77 +2830,117 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
         )
       })}
 
-      {/* Bat Wings */}
+      {/* Enhanced Spiky Bat Wings */}
       <group position={[0, 0.5, -0.1]}>
         {/* Left Wing */}
-        <group position={[-0.3, 0, 0]} rotation={[0, 0, Math.sin(bobOffset * 2) * 0.3]}>
-          {/* Wing membrane */}
+        <group position={[-0.3, 0, 0]} rotation={[0, 0, Math.sin(bobOffset * 2) * 0.4]}>
+          {/* Main Wing membrane with jagged edges */}
           <mesh position={[-0.2, 0, 0]} rotation={[0, 0, 0.2]}>
-            <planeGeometry args={[0.4, 0.6]} />
+            <planeGeometry args={[0.5, 0.8]} />
             <meshStandardMaterial 
-              color="#1A0000" 
+              color="#0F0000" 
               transparent={true}
-              opacity={0.8}
+              opacity={0.9}
               side={THREE.DoubleSide}
-              emissive="#660000"
-              emissiveIntensity={0.2}
+              emissive="#AA0000"
+              emissiveIntensity={0.3}
             />
           </mesh>
           
-          {/* Wing bones/fingers */}
+          {/* Wing spikes along top edge */}
+          {[...Array(5)].map((_, i) => (
+            <mesh key={`left-spike-top-${i}`} position={[-0.05 - i * 0.08, 0.35 - i * 0.05, 0]}>
+              <coneGeometry args={[0.015, 0.12, 4]} />
+              <meshStandardMaterial color="#000000" metalness={1} roughness={0.1} emissive="#440000" />
+            </mesh>
+          ))}
+          
+          {/* Wing spikes along bottom edge */}
+          {[...Array(4)].map((_, i) => (
+            <mesh key={`left-spike-bottom-${i}`} position={[-0.1 - i * 0.08, -0.3 + i * 0.02, 0]} rotation={[0, 0, Math.PI]}>
+              <coneGeometry args={[0.012, 0.1, 4]} />
+              <meshStandardMaterial color="#000000" metalness={1} roughness={0.1} emissive="#440000" />
+            </mesh>
+          ))}
+          
+          {/* Wing bones/fingers with spikes */}
           <mesh position={[-0.1, 0.2, 0]} rotation={[0, 0, 0.1]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.3]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.012, 0.012, 0.35]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           <mesh position={[-0.2, 0.1, 0]} rotation={[0, 0, 0.3]}>
-            <cylinderGeometry args={[0.006, 0.006, 0.25]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.01, 0.01, 0.3]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           <mesh position={[-0.3, -0.1, 0]} rotation={[0, 0, 0.5]}>
-            <cylinderGeometry args={[0.006, 0.006, 0.2]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.01, 0.01, 0.25]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           
-          {/* Wing claw */}
-          <mesh position={[-0.4, 0.2, 0]}>
-            <coneGeometry args={[0.02, 0.08, 4]} />
-            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          {/* Enhanced wing claw with extra spikes */}
+          <mesh position={[-0.45, 0.25, 0]}>
+            <coneGeometry args={[0.025, 0.12, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} emissive="#AA2222" />
+          </mesh>
+          <mesh position={[-0.42, 0.18, 0]}>
+            <coneGeometry args={[0.015, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} emissive="#AA2222" />
           </mesh>
         </group>
 
         {/* Right Wing */}
-        <group position={[0.3, 0, 0]} rotation={[0, 0, -Math.sin(bobOffset * 2) * 0.3]}>
-          {/* Wing membrane */}
+        <group position={[0.3, 0, 0]} rotation={[0, 0, -Math.sin(bobOffset * 2) * 0.4]}>
+          {/* Main Wing membrane with jagged edges */}
           <mesh position={[0.2, 0, 0]} rotation={[0, 0, -0.2]}>
-            <planeGeometry args={[0.4, 0.6]} />
+            <planeGeometry args={[0.5, 0.8]} />
             <meshStandardMaterial 
-              color="#1A0000" 
+              color="#0F0000" 
               transparent={true}
-              opacity={0.8}
+              opacity={0.9}
               side={THREE.DoubleSide}
-              emissive="#660000"
-              emissiveIntensity={0.2}
+              emissive="#AA0000"
+              emissiveIntensity={0.3}
             />
           </mesh>
           
-          {/* Wing bones/fingers */}
+          {/* Wing spikes along top edge */}
+          {[...Array(5)].map((_, i) => (
+            <mesh key={`right-spike-top-${i}`} position={[0.05 + i * 0.08, 0.35 - i * 0.05, 0]}>
+              <coneGeometry args={[0.015, 0.12, 4]} />
+              <meshStandardMaterial color="#000000" metalness={1} roughness={0.1} emissive="#440000" />
+            </mesh>
+          ))}
+          
+          {/* Wing spikes along bottom edge */}
+          {[...Array(4)].map((_, i) => (
+            <mesh key={`right-spike-bottom-${i}`} position={[0.1 + i * 0.08, -0.3 + i * 0.02, 0]} rotation={[0, 0, Math.PI]}>
+              <coneGeometry args={[0.012, 0.1, 4]} />
+              <meshStandardMaterial color="#000000" metalness={1} roughness={0.1} emissive="#440000" />
+            </mesh>
+          ))}
+          
+          {/* Wing bones/fingers with spikes */}
           <mesh position={[0.1, 0.2, 0]} rotation={[0, 0, -0.1]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.3]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.012, 0.012, 0.35]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           <mesh position={[0.2, 0.1, 0]} rotation={[0, 0, -0.3]}>
-            <cylinderGeometry args={[0.006, 0.006, 0.25]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.01, 0.01, 0.3]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           <mesh position={[0.3, -0.1, 0]} rotation={[0, 0, -0.5]}>
-            <cylinderGeometry args={[0.006, 0.006, 0.2]} />
-            <meshStandardMaterial color="#000000" metalness={0.9} />
+            <cylinderGeometry args={[0.01, 0.01, 0.25]} />
+            <meshStandardMaterial color="#000000" metalness={0.9} emissive="#220000" />
           </mesh>
           
-          {/* Wing claw */}
-          <mesh position={[0.4, 0.2, 0]}>
-            <coneGeometry args={[0.02, 0.08, 4]} />
-            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} />
+          {/* Enhanced wing claw with extra spikes */}
+          <mesh position={[0.45, 0.25, 0]}>
+            <coneGeometry args={[0.025, 0.12, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} emissive="#AA2222" />
+          </mesh>
+          <mesh position={[0.42, 0.18, 0]}>
+            <coneGeometry args={[0.015, 0.08, 4]} />
+            <meshStandardMaterial color="#FFFFFF" metalness={1} roughness={0.1} emissive="#AA2222" />
           </mesh>
         </group>
       </group>
