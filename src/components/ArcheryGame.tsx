@@ -1632,10 +1632,12 @@ function Player() {
   const isJumping = useRef(false)
   const jumpVelocity = useRef(0)
   const lastSpacePress = useRef(0)
+  const spaceClickCount = useRef(0)
   const isBoosterActive = useRef(false)
   const maxBoosterHeight = useRef(12) // Maximum height with booster
   const boosterStartTime = useRef(0) // Track when booster started
   const maxBoosterDuration = 1000 // 1 second in milliseconds
+  const secondClickHeld = useRef(false) // Track if second click is being held
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1646,24 +1648,36 @@ function Player() {
         const currentTime = Date.now()
         const timeSinceLastPress = currentTime - lastSpacePress.current
         
-        // Double click detected (within 300ms)
-        if (timeSinceLastPress < 300 && timeSinceLastPress > 50) {
+        // Reset click count if too much time has passed
+        if (timeSinceLastPress > 500) {
+          spaceClickCount.current = 0
+        }
+        
+        spaceClickCount.current++
+        lastSpacePress.current = currentTime
+        
+        // Second click within 300ms - activate booster
+        if (spaceClickCount.current === 2 && timeSinceLastPress < 300 && timeSinceLastPress > 50) {
           if (!isBoosterActive.current) {
             isBoosterActive.current = true
             boosterStartTime.current = currentTime
+            secondClickHeld.current = true
+            spaceClickCount.current = 0 // Reset for next double-click
           }
         }
-        
-        lastSpacePress.current = currentTime
       }
     }
     
     const handleKeyUp = (e: KeyboardEvent) => {
       keys.current[e.code] = false
       
-      // Deactivate booster when spacebar is released
+      // Deactivate booster when second spacebar click is released
       if (e.code === "Space") {
-        isBoosterActive.current = false
+        secondClickHeld.current = false
+        // Only deactivate if we're currently boosting
+        if (isBoosterActive.current) {
+          isBoosterActive.current = false
+        }
       }
     }
 
@@ -1697,16 +1711,19 @@ function Player() {
 
     camera.position.add(direction.current)
 
-    // Booster Jump Logic - Time-based (max 1 second)
-    if (isBoosterActive.current && camera.position.y < maxBoosterHeight.current) {
+    // Booster Jump Logic - Time-based (max 1 second) and hold-based
+    if (isBoosterActive.current) {
       const currentTime = Date.now()
       const timeSinceStart = currentTime - boosterStartTime.current
       
-      // Check if max duration exceeded or spacebar released
-      if (timeSinceStart >= maxBoosterDuration || !keys.current["Space"]) {
+      // Check if max duration exceeded, spacebar released, or height exceeded
+      if (timeSinceStart >= maxBoosterDuration || !secondClickHeld.current || camera.position.y >= maxBoosterHeight.current) {
         isBoosterActive.current = false
+        secondClickHeld.current = false
+        // Immediately apply gravity to stop upward motion
+        jumpVelocity.current = Math.min(jumpVelocity.current, 0) // Stop upward motion completely
       } else {
-        // Apply upward boost force
+        // Apply upward boost force only if below max height
         jumpVelocity.current = boosterForce
         isJumping.current = true
       }
@@ -1724,6 +1741,13 @@ function Player() {
       // Apply gravity only when not actively boosting
       if (!isBoosterActive.current) {
         jumpVelocity.current += gravity * delta
+      }
+
+      // Strict height limit enforcement - force player down if they exceed max height
+      if (camera.position.y > maxBoosterHeight.current) {
+        camera.position.y = maxBoosterHeight.current
+        jumpVelocity.current = -5 // Force downward velocity
+        isBoosterActive.current = false // Deactivate booster
       }
 
       // Land
