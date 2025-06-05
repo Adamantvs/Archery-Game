@@ -1263,7 +1263,7 @@ function Explosion({ position }: { position: number[] }) {
   const [opacity, setOpacity] = useState(1)
 
   // Explosion animation
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (explosionRef.current) {
       // Grow and fade out
       setScale((prev: number) => Math.min(prev + delta * 5, 4))
@@ -1333,7 +1333,7 @@ function Explosion({ position }: { position: number[] }) {
 
 function Player() {
   const { camera } = useThree()
-  const velocity = useRef(new THREE.Vector3())
+  const _velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
   const keys = useRef<Record<string, boolean>>({})
   const isJumping = useRef(false)
@@ -1356,7 +1356,7 @@ function Player() {
     }
   }, [])
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     const speed = 5
     const jumpForce = 8
     const gravity = -20
@@ -1410,7 +1410,7 @@ function Crossbow({ drawn }: { drawn: boolean }) {
   const crossbowRef = useRef<THREE.Group>(null)
   const recoilRef = useRef(0)
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (crossbowRef.current) {
       // Position crossbow horizontally at chest level, moved closer for better visibility
       const offset = new THREE.Vector3(0.4, -0.1, -0.15)
@@ -1611,7 +1611,7 @@ function Arrow({ arrow, onUpdate, onRemove }: { arrow: any; onUpdate: (arrow: an
   const groupRef = useRef<THREE.Group>(null)
   const gravity = -15
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     // Create new arrow state (immutable updates)
     const newVelocity = arrow.velocity.clone()
     newVelocity.y += gravity * delta
@@ -1696,9 +1696,8 @@ function Arrow({ arrow, onUpdate, onRemove }: { arrow: any; onUpdate: (arrow: an
 
 function Rocket({ rocket, onUpdate, onRemove }: { rocket: any; onUpdate: (rocket: any) => void; onRemove: () => void }) {
   const groupRef = useRef<THREE.Group>(null)
-  const [explosions, setExplosions] = useState<any[]>([])
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     // Update rocket position - no gravity, just fast travel
     const newPosition = rocket.position.clone()
     newPosition.add(rocket.velocity.clone().multiplyScalar(delta))
@@ -2017,8 +2016,8 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
   const [targetPosition, setTargetPosition] = useState(new THREE.Vector3(...position))
   const [nextTargetTime, setNextTargetTime] = useState(Date.now() + Math.random() * 3000)
   const [isFollowingPlayer, setIsFollowingPlayer] = useState(false)
-  const [baseHeight, setBaseHeight] = useState(0.5)
-  const [targetHeight, setTargetHeight] = useState(0.5)
+  const [_baseHeight, _setBaseHeight] = useState(0.5)
+  const [_targetHeight, setTargetHeight] = useState(0.5)
 
   // Castle collision detection function
   const checkCastleCollision = (pos: THREE.Vector3) => {
@@ -2044,17 +2043,17 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
   }
 
   // Flying and player-following AI
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (enemyRef.current && enemy.active) {
       // Wing flapping animation
       setBobOffset((prev: number) => prev + delta * 3)
       
       // Check for player proximity (within 15 units)
-      let playerDetected = false
+      let _playerDetected = false
       if (playerPosition) {
         const distanceToPlayer = currentPosition.distanceTo(playerPosition)
         if (distanceToPlayer < 15) {
-          playerDetected = true
+          _playerDetected = true
           setIsFollowingPlayer(true)
         } else if (distanceToPlayer > 25) {
           // Stop following if player gets too far away
@@ -2407,7 +2406,7 @@ function EnemyPop({ position }: { position: number[] }) {
   }, [])
 
   // Dramatic pop animation
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (popRef.current) {
       // Initial dramatic expansion then shrink
       const time = state.clock.elapsedTime
@@ -2534,10 +2533,10 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
   const [bobOffset, setBobOffset] = useState(0)
   const [wingFlap, setWingFlap] = useState(0)
   const [currentPosition, setCurrentPosition] = useState(dragon.position)
-  const [attackTimer, setAttackTimer] = useState(0)
+  const [_attackTimer, setAttackTimer] = useState(0)
 
   // Dragon AI and movement
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!dragonRef.current || !playerPosition) return
 
     setBobOffset((prev: number) => prev + delta * 2)
