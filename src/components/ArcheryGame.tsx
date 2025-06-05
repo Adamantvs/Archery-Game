@@ -872,14 +872,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
-    const explosionDuration = 2000 // 2 seconds
+    const explosionDuration = 1500 // 1.5 seconds for better performance
     const popDuration = 3000 // 3 seconds for dramatic effect
     
     const interval = setInterval(() => {
       const now = Date.now()
       setExplosions((prev: any[]) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
       setEnemyPops((prev: any[]) => prev.filter((pop) => now - pop.createdAt < popDuration))
-    }, 500)
+    }, 250) // More frequent cleanup for better performance
 
     return () => clearInterval(interval)
   }, [])
@@ -1052,26 +1052,36 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
           onPositionUpdate={(newPosition) => {
             // Check if this is a ground impact signal
             if (Array.isArray(newPosition) && newPosition.length > 3 && (newPosition as any)[3] === 'ground_impact') {
-              // Create massive ground explosion
+              // Create staggered ground explosions to prevent crash
+              const baseTime = Date.now()
+              
+              // Main explosion immediately
               setExplosions((prev: any[]) => [
                 ...prev,
-                // Main ground explosion
                 {
-                  id: Date.now() + 1000,
+                  id: baseTime,
                   position: [newPosition[0], 0, newPosition[2]],
-                  createdAt: Date.now(),
-                },
-                // Multiple explosions around impact point
-                ...Array.from({ length: 6 }, (_, i) => ({
-                  id: Date.now() + 1001 + i,
-                  position: [
-                    newPosition[0] + (Math.random() - 0.5) * 8,
-                    0,
-                    newPosition[2] + (Math.random() - 0.5) * 8
-                  ],
-                  createdAt: Date.now() + i * 200,
-                }))
+                  createdAt: baseTime,
+                }
               ])
+              
+              // Stagger remaining explosions to prevent overload
+              Array.from({ length: 3 }, (_, i) => {
+                setTimeout(() => {
+                  setExplosions((prev: any[]) => [
+                    ...prev,
+                    {
+                      id: baseTime + 100 + i,
+                      position: [
+                        newPosition[0] + (Math.random() - 0.5) * 6,
+                        0,
+                        newPosition[2] + (Math.random() - 0.5) * 6
+                      ],
+                      createdAt: Date.now(),
+                    }
+                  ])
+                }, i * 300)
+              })
               
               // Remove dragon after impact explosion
               setTimeout(() => {
@@ -1459,54 +1469,74 @@ function Crossbow({ drawn }: { drawn: boolean }) {
         )
       })}
 
-      {/* Advanced bow assembly - carbon fiber limbs */}
+      {/* Central bow riser - reinforced frame */}
       <mesh position={[0, 0.02, 0.4]}>
-        <boxGeometry args={[0.2, 0.12, 0.08]} />
-        <meshStandardMaterial color="#0a0a0a" roughness={0.1} metalness={0.9} />
+        <boxGeometry args={[0.15, 0.08, 0.12]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.2} metalness={0.8} />
       </mesh>
 
-      {/* High-tech limbs - curved design */}
-      <mesh position={[-0.25, 0.02, 0.4]} rotation={[0, 0, 0.1]}>
-        <boxGeometry args={[0.5, 0.04, 0.03]} />
-        <meshStandardMaterial 
-          color="#1a1a1a" 
-          roughness={0.1} 
-          metalness={0.9}
-          emissive="#001122"
-          emissiveIntensity={0.2}
-        />
+      {/* Left bow limb - curved and substantial */}
+      <group position={[-0.075, 0.02, 0.4]}>
+        {/* Main limb shaft */}
+        <mesh position={[-0.15, 0, 0]} rotation={[0, 0, 0.15]}>
+          <boxGeometry args={[0.3, 0.03, 0.04]} />
+          <meshStandardMaterial color="#8B4513" roughness={0.3} metalness={0.1} />
+        </mesh>
+        {/* Limb tip curve */}
+        <mesh position={[-0.28, 0.04, 0]} rotation={[0, 0, 0.4]}>
+          <boxGeometry args={[0.08, 0.025, 0.04]} />
+          <meshStandardMaterial color="#654321" roughness={0.4} metalness={0.1} />
+        </mesh>
+      </group>
+
+      {/* Right bow limb - mirrored */}
+      <group position={[0.075, 0.02, 0.4]}>
+        {/* Main limb shaft */}
+        <mesh position={[0.15, 0, 0]} rotation={[0, 0, -0.15]}>
+          <boxGeometry args={[0.3, 0.03, 0.04]} />
+          <meshStandardMaterial color="#8B4513" roughness={0.3} metalness={0.1} />
+        </mesh>
+        {/* Limb tip curve */}
+        <mesh position={[0.28, 0.04, 0]} rotation={[0, 0, -0.4]}>
+          <boxGeometry args={[0.08, 0.025, 0.04]} />
+          <meshStandardMaterial color="#654321" roughness={0.4} metalness={0.1} />
+        </mesh>
+      </group>
+
+      {/* Limb reinforcement bands */}
+      <mesh position={[-0.2, 0.02, 0.4]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.05]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.1} metalness={0.9} />
       </mesh>
-      <mesh position={[0.25, 0.02, 0.4]} rotation={[0, 0, -0.1]}>
-        <boxGeometry args={[0.5, 0.04, 0.03]} />
-        <meshStandardMaterial 
-          color="#1a1a1a" 
-          roughness={0.1} 
-          metalness={0.9}
-          emissive="#001122"
-          emissiveIntensity={0.2}
-        />
+      <mesh position={[0.2, 0.02, 0.4]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.05]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.1} metalness={0.9} />
       </mesh>
 
-      {/* Limb tips with high-tech cams */}
-      <mesh position={[-0.45, 0.02, 0.4]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.02]} />
-        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.5} />
+      {/* String nocks at limb tips */}
+      <mesh position={[-0.32, 0.055, 0.4]}>
+        <sphereGeometry args={[0.015]} />
+        <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
       </mesh>
-      <mesh position={[0.45, 0.02, 0.4]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.02]} />
-        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={0.5} />
+      <mesh position={[0.32, 0.055, 0.4]}>
+        <sphereGeometry args={[0.015]} />
+        <meshStandardMaterial color="#333333" roughness={0.2} metalness={0.8} />
       </mesh>
 
-      {/* High-tech bowstring with energy effect */}
-      <mesh position={[0, 0.02, drawn ? 0.37 : 0.4]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.003, 0.003, 0.9]} />
+      {/* Crossbow string connecting limb tips */}
+      <mesh position={[0, 0.055, drawn ? 0.37 : 0.4]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.002, 0.002, 0.64]} />
         <meshStandardMaterial 
-          color="#00ffff" 
-          emissive="#00ffff" 
-          emissiveIntensity={1.5}
-          transparent={true}
-          opacity={0.8}
+          color="#dddddd" 
+          roughness={0.1}
+          metalness={0.2}
         />
+      </mesh>
+      
+      {/* String center serving (where arrow sits) */}
+      <mesh position={[0, 0.055, drawn ? 0.37 : 0.4]}>
+        <cylinderGeometry args={[0.005, 0.005, 0.03]} />
+        <meshStandardMaterial color="#444444" roughness={0.3} />
       </mesh>
 
       {/* Scope/sight system */}

@@ -1,9 +1,9 @@
 # Claude Code Session Notes
 
 ## Session Status
-**Current Step**: Build and TypeScript Error Fixes Complete
+**Current Step**: Dragon Crash Fix & Crossbow Redesign Complete  
 **Starting Commit**: a8beb98 (feat: implement aggressive demon AI improvements and scoring system)
-**Session Type**: Build error fixes and TypeScript cleanup
+**Session Type**: Performance optimization and weapon redesign
 
 ## Session Commits (Reverted from later problematic commits)
 - 2b16e98 feat: increase enemy wandering radius around castle
@@ -110,12 +110,11 @@ Refined dragon entrance and death animations
 - **Result**: Dragon now smoothly descends during entrance phase without sudden repositioning
 
 ## Latest Session Action
-- ✅ Reverted back to commit 4ab4598 to remove problematic terrain implementation
-- ✅ Back to stable game with working dragon boss, rockets, and simple flat environment
-- ✅ All core features working: dragon boss, rocket projectiles, enemy spawning, collision detection
-- ✅ Implemented dramatic dragon falling death animation
-- ✅ **TypeScript Code Quality**: Added proper type annotations to all setState calls with arrow functions
-- ✅ **useFrame Parameter Fix**: Changed useFrame parameter from `_state` to `state` for functions that use `state.clock`
+- ✅ **Fixed Dragon Crash Issue**: Reduced simultaneous explosions from 7 to 4 with staggered timing to prevent performance overload
+- ✅ **Optimized Explosion Cleanup**: Reduced explosion duration from 2s to 1.5s and increased cleanup frequency from 500ms to 250ms
+- ✅ **Redesigned Crossbow**: Added proper bow limbs with realistic curved design, wood texture, and metal reinforcements
+- ✅ **Enhanced Bowstring**: Updated string to properly connect limb tips with realistic appearance and serving area
+- ✅ **Performance Improvements**: Staggered dragon death explosions with 300ms delays to prevent render overload
 
 ## Dragon Death Animation Features
 - **Falling Physics**: Dragon falls with gravity (speed 12) when health reaches 0
