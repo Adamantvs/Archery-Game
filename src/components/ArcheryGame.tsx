@@ -1654,6 +1654,12 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
   const lastSpacePress = useRef(0)
   const isBoosterActive = useRef(false)
   const maxBoosterHeight = useRef(12) // Maximum height with booster
+  const currentFuel = useRef(boosterFuel) // Local fuel tracking for immediate checks
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    currentFuel.current = boosterFuel
+  }, [boosterFuel])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1666,7 +1672,7 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
         
         // Double click detected (within 300ms)
         if (timeSinceLastPress < 300 && timeSinceLastPress > 50) {
-          if (boosterFuel > 0 && !isBoosterActive.current) {
+          if (currentFuel.current > 0 && !isBoosterActive.current) {
             isBoosterActive.current = true
           }
         }
@@ -1717,11 +1723,12 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
     camera.position.add(direction.current)
 
     // Booster Jump Logic
-    if (isBoosterActive.current && boosterFuel > 0 && camera.position.y < maxBoosterHeight.current) {
+    if (isBoosterActive.current && currentFuel.current > 0 && camera.position.y < maxBoosterHeight.current) {
       // Calculate new fuel value
-      const newFuelValue = Math.max(0, boosterFuel - boosterFuelDrain * delta)
+      const newFuelValue = Math.max(0, currentFuel.current - boosterFuelDrain * delta)
       
-      // Consume fuel while boosting
+      // Update both ref and state
+      currentFuel.current = newFuelValue
       setBoosterFuel(newFuelValue)
       
       // Apply upward boost force
@@ -1763,7 +1770,9 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
 
     // Regenerate booster fuel when on ground and not boosting
     if (camera.position.y <= 2.1 && !isBoosterActive.current) {
-      setBoosterFuel(prev => Math.min(100, prev + 30 * delta)) // Regenerate 30% per second
+      const newFuelValue = Math.min(100, currentFuel.current + 30 * delta)
+      currentFuel.current = newFuelValue
+      setBoosterFuel(newFuelValue) // Regenerate 30% per second
     }
   })
 
