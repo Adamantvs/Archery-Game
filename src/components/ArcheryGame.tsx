@@ -215,26 +215,24 @@ export default function ArcheryGame() {
               <p className="text-xl mb-6 font-medieval">You have slain the mighty dragon and saved the realm!</p>
               <div className="text-4xl font-bold text-yellow-400 mb-8 font-medieval">Final Score: {score}</div>
               <button 
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl mr-4 font-medieval"
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl font-medieval"
                 onClick={() => {
-                  // Reset game state for play again
+                  // Complete game state reset for play again
                   setShowVictoryMessage(false)
                   setShowFullVictory(false)
                   setDragonDefeated(false)
                   setDragonSpawned(false)
+                  setShowDragonWarning(false)
                   setKillCount(0)
                   setScore(0)
                   setPlayerHealth(100)
                   setConfetti([])
+                  setVictoryTransition(false)
+                  setDamageFlash(0)
+                  setDragon(null)
                 }}
               >
-                Play Again
-              </button>
-              <button 
-                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-xl font-medieval"
-                onClick={() => setShowFullVictory(false)}
-              >
-                Continue Exploring
+                🏹 Play Again
               </button>
             </div>
           </div>
