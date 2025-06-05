@@ -16,6 +16,7 @@ export default function ArcheryGame() {
   const [dragonDefeated, setDragonDefeated] = useState(false)
   const [showVictoryMessage, setShowVictoryMessage] = useState(false)
   const [_dragonEntering, setDragonEntering] = useState(false)
+  const [confetti, setConfetti] = useState<any[]>([])
 
   return (
     <div className="w-full h-screen relative">
@@ -36,6 +37,8 @@ export default function ArcheryGame() {
           setDragonDefeated={setDragonDefeated}
           setShowVictoryMessage={setShowVictoryMessage}
           _setDragonEntering={setDragonEntering}
+          confetti={confetti}
+          setConfetti={setConfetti}
         />
       </Canvas>
 
@@ -154,7 +157,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti }: { 
   setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
   setPlayerHealth: Dispatch<SetStateAction<number>>, 
@@ -169,7 +172,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   setShowDragonWarning: Dispatch<SetStateAction<boolean>>,
   setDragonDefeated: Dispatch<SetStateAction<boolean>>,
   setShowVictoryMessage: Dispatch<SetStateAction<boolean>>,
-  _setDragonEntering: Dispatch<SetStateAction<boolean>>
+  _setDragonEntering: Dispatch<SetStateAction<boolean>>,
+  confetti: any[],
+  setConfetti: Dispatch<SetStateAction<any[]>>
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -571,15 +576,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
                 },
               ])
 
-              // Massive dramatic dragon death effect
-              setEnemyPops((prev: any[]) => [
-                ...prev,
-                {
-                  id: Date.now(),
-                  position: dragonPos,
-                  createdAt: Date.now(),
-                },
-              ])
+              // Massive dramatic dragon death effect (this is old code that should be removed)
 
               // Kill ALL remaining enemies simultaneously
               enemies.forEach((enemy) => {
@@ -598,13 +595,38 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               // Deactivate all enemies
               setEnemies((prev: any[]) => prev.map(e => ({ ...e, active: false })))
               
-              // Set dragon to dying state instead of removing immediately
-              setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
+              // Instant confetti explosion and remove dragon immediately
+              const dragonPosition = dragon.currentPosition || [0, 15, -60]
+              
+              // Create confetti explosion
+              setConfetti((prev: any[]) => [
+                ...prev,
+                ...Array.from({ length: 30 }, (_, i) => ({
+                  id: Date.now() + i,
+                  position: [
+                    dragonPosition[0] + (Math.random() - 0.5) * 4,
+                    dragonPosition[1] + (Math.random() - 0.5) * 4,
+                    dragonPosition[2] + (Math.random() - 0.5) * 4
+                  ],
+                  velocity: [
+                    (Math.random() - 0.5) * 8,
+                    Math.random() * 6 + 2,
+                    (Math.random() - 0.5) * 8
+                  ],
+                  color: ['#FF69B4', '#00FF00', '#FFD700', '#FF4500', '#9370DB'][Math.floor(Math.random() * 5)],
+                  createdAt: Date.now()
+                }))
+              ])
+              
+              // Remove dragon immediately and show victory
+              setDragon(null)
               setScore((prev: number) => prev + 10) // Big score bonus for dragon
               
-              // Victory timing now handled by ground impact
-              // Dragon will explode when hitting ground and then show victory
-              // Don't show victory immediately
+              // Show victory after short delay
+              setTimeout(() => {
+                setShowVictoryMessage(true)
+                setDragonDefeated(true)
+              }, 1000)
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
@@ -847,13 +869,39 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               })
               
               setEnemies((prev: any[]) => prev.map(e => ({ ...e, active: false })))
-              // Set dragon to dying state instead of removing immediately
-              setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
+              
+              // Instant confetti explosion and remove dragon immediately
+              const dragonPosition = dragon.currentPosition || [0, 15, -60]
+              
+              // Create confetti explosion
+              setConfetti((prev: any[]) => [
+                ...prev,
+                ...Array.from({ length: 40 }, (_, i) => ({
+                  id: Date.now() + i,
+                  position: [
+                    dragonPosition[0] + (Math.random() - 0.5) * 4,
+                    dragonPosition[1] + (Math.random() - 0.5) * 4,
+                    dragonPosition[2] + (Math.random() - 0.5) * 4
+                  ],
+                  velocity: [
+                    (Math.random() - 0.5) * 10,
+                    Math.random() * 8 + 2,
+                    (Math.random() - 0.5) * 10
+                  ],
+                  color: ['#FF69B4', '#00FF00', '#FFD700', '#FF4500', '#9370DB'][Math.floor(Math.random() * 5)],
+                  createdAt: Date.now()
+                }))
+              ])
+              
+              // Remove dragon immediately and show victory
+              setDragon(null)
               setScore((prev: number) => prev + 20) // Bigger bonus for rocket dragon kill
               
-              // Victory timing now handled by ground impact
-              // Dragon will explode when hitting ground and then show victory
-              // Don't show victory immediately
+              // Show victory after short delay
+              setTimeout(() => {
+                setShowVictoryMessage(true)
+                setDragonDefeated(true)
+              }, 1000)
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
@@ -877,6 +925,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       const now = Date.now()
       setExplosions((prev: any[]) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
       setEnemyPops((prev: any[]) => prev.filter((pop) => now - pop.createdAt < popDuration))
+      setConfetti((prev: any[]) => prev.filter((piece) => now - piece.createdAt < 8000)) // Confetti lasts 8 seconds
     }, 250) // More frequent cleanup for better performance
 
     return () => clearInterval(interval)
@@ -1038,11 +1087,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
 
       {/* Cinematic Sky with dramatic low-angle golden hour */}
       <Sky 
-        sunPosition={dragon && dragon.active ? [50, 8, 100] : [50, 8, 100]}
-        turbidity={dragon && dragon.active ? 15 : 8}
-        rayleigh={dragon && dragon.active ? 0.8 : 1.5}
-        mieCoefficient={dragon && dragon.active ? 0.15 : 0.01}
-        mieDirectionalG={dragon && dragon.active ? 0.9 : 0.7}
+        sunPosition={dragon && dragon.active ? [30, 6, 80] : [50, 8, 100]}
+        turbidity={dragon && dragon.active ? 25 : 8}
+        rayleigh={dragon && dragon.active ? 0.3 : 1.5}
+        mieCoefficient={dragon && dragon.active ? 0.2 : 0.01}
+        mieDirectionalG={dragon && dragon.active ? 0.95 : 0.7}
       />
 
       <Player />
@@ -1073,37 +1122,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
           dragon={dragon}
           playerPosition={controlsRef.current?.getObject()?.position}
           onPositionUpdate={(newPosition) => {
-            // Check if this is a ground impact signal
-            if (Array.isArray(newPosition) && newPosition.length > 3 && (newPosition as any)[3] === 'ground_impact') {
-              // Single ground explosion to prevent crash
-              const baseTime = Date.now()
-              
-              // Only one main explosion
-              setExplosions((prev: any[]) => [
-                ...prev,
-                {
-                  id: baseTime,
-                  position: [newPosition[0], 0, newPosition[2]],
-                  createdAt: baseTime,
-                }
-              ])
-              
-              // Show victory message after longer delay
-              setTimeout(() => {
-                setShowVictoryMessage(true)
-              }, 1500) // Show victory 1.5 seconds after ground impact
-              
-              // Remove dragon and trigger full victory after longer delay
-              setTimeout(() => {
-                setDragon(null)
-                setDragonDefeated(true)
-              }, 4000) // 4 seconds after ground impact for full victory
-              
-              // Update position without the signal
-              setDragon((prev: any) => prev ? { ...prev, currentPosition: [newPosition[0], newPosition[1], newPosition[2]] } : null)
-            } else {
-              setDragon((prev: any) => prev ? { ...prev, currentPosition: newPosition } : null)
-            }
+            setDragon((prev: any) => prev ? { ...prev, currentPosition: newPosition } : null)
           }}
         />
       )}
@@ -1111,6 +1130,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       {/* Render explosions */}
       {explosions.map((explosion) => (
         <Explosion key={explosion.id} position={explosion.position} />
+      ))}
+
+      {/* Render confetti */}
+      {confetti.map((piece) => (
+        <ConfettiPiece key={piece.id} piece={piece} />
       ))}
 
       {/* Render enemy pop effects */}
@@ -1818,6 +1842,55 @@ function Rocket({ rocket, onUpdate, onRemove }: { rocket: any; onUpdate: (rocket
         />
       </mesh>
     </group>
+  )
+}
+
+function ConfettiPiece({ piece }: { piece: any }) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const [currentPosition, setCurrentPosition] = useState(piece.position)
+  const [currentVelocity, setCurrentVelocity] = useState(piece.velocity)
+
+  useFrame((_state, delta) => {
+    if (meshRef.current) {
+      // Apply gravity and update position
+      const newVelocity = [...currentVelocity]
+      newVelocity[1] -= 9.8 * delta * 2 // Gravity
+
+      const newPosition = [
+        currentPosition[0] + newVelocity[0] * delta,
+        currentPosition[1] + newVelocity[1] * delta,
+        currentPosition[2] + newVelocity[2] * delta
+      ]
+
+      // Simple bounce when hitting ground
+      if (newPosition[1] <= 0) {
+        newPosition[1] = 0
+        newVelocity[1] = Math.abs(newVelocity[1]) * 0.3 // Bounce with energy loss
+        newVelocity[0] *= 0.8 // Friction
+        newVelocity[2] *= 0.8 // Friction
+      }
+
+      setCurrentPosition(newPosition)
+      setCurrentVelocity(newVelocity)
+
+      // Update mesh position
+      meshRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
+      
+      // Add rotation for visual effect
+      meshRef.current.rotation.x += delta * 5
+      meshRef.current.rotation.y += delta * 3
+    }
+  })
+
+  return (
+    <mesh ref={meshRef} position={currentPosition as [number, number, number]}>
+      <boxGeometry args={[0.1, 0.1, 0.02]} />
+      <meshStandardMaterial 
+        color={piece.color}
+        emissive={piece.color}
+        emissiveIntensity={0.3}
+      />
+    </mesh>
   )
 }
 
@@ -2883,23 +2956,6 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         newPosition[1] += direction.y * delta  
         newPosition[2] += direction.z * delta
       }
-    } else if (dragon.phase === 'dying') {
-      // Simplified falling death animation
-      const fallSpeed = 6 // Faster fall to reduce animation time
-      
-      // Fall straight down with minimal drift
-      newPosition[1] -= fallSpeed * delta
-      
-      // Minimal drift to keep fall natural
-      newPosition[0] += Math.sin(state.clock.elapsedTime * 0.5) * 0.1 * delta
-      newPosition[2] += Math.cos(state.clock.elapsedTime * 0.3) * 0.1 * delta
-      
-      // Check for ground collision and trigger explosion
-      if (newPosition[1] <= 2 && dragon.phase === 'dying') {
-        newPosition[1] = 2 // Stop just above ground
-        // Signal ground impact for explosion (we'll handle this in parent)
-        onPositionUpdate([...newPosition, 'ground_impact'])
-      }
     }
 
     setCurrentPosition(newPosition)
@@ -2908,20 +2964,12 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     // Update visual position
     dragonRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
     
-    // Handle dragon orientation based on phase
-    if (dragon.phase === 'dying') {
-      // Very gentle rotation to prevent dismantling
-      dragonRef.current.rotation.x += 0.2 * delta
-      dragonRef.current.rotation.y += 0.3 * delta
-      // No Z rotation to keep structure stable
-    } else {
-      // Face towards player when alive
-      if (playerPosition) {
-        dragonRef.current.lookAt(playerPosition)
-      }
-      // Vertical bobbing motion when alive
-      dragonRef.current.position.y += Math.sin(bobOffset) * 0.5
+    // Face towards player when alive
+    if (playerPosition) {
+      dragonRef.current.lookAt(playerPosition)
     }
+    // Vertical bobbing motion when alive
+    dragonRef.current.position.y += Math.sin(bobOffset) * 0.5
   })
 
   return (
@@ -3149,71 +3197,17 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         )
       })}
 
-      {/* Health indicator above dragon - only show when alive */}
-      {dragon.phase !== 'dying' && (
-        <group position={[0, 6, 0]}>
-          <mesh>
-            <planeGeometry args={[4, 0.5]} />
-            <meshStandardMaterial color="#FF0000" transparent opacity={0.8} />
-          </mesh>
-          <mesh position={[0, 0, 0.01]} scale={[dragon.health / 5, 1, 1]}>
-            <planeGeometry args={[4, 0.5]} />
-            <meshStandardMaterial color="#00FF00" transparent opacity={0.9} />
-          </mesh>
-        </group>
-      )}
-      
-      {/* Dramatic falling smoke trail when dying */}
-      {dragon.phase === 'dying' && (
-        <group>
-          {Array.from({ length: 8 }).map((_, i) => {
-            const offset = i * 0.5
-            return (
-              <mesh 
-                key={i} 
-                position={[
-                  Math.sin(bobOffset * 2 + i) * 1, 
-                  offset,
-                  Math.cos(bobOffset * 1.5 + i) * 1
-                ]}
-              >
-                <sphereGeometry args={[0.3, 6, 6]} />
-                <meshStandardMaterial 
-                  color={i % 2 === 0 ? "#444444" : "#FF4500"}
-                  emissive={i % 2 === 0 ? "#222222" : "#FF2200"}
-                  emissiveIntensity={0.8}
-                  transparent 
-                  opacity={0.7 - i * 0.1}
-                />
-              </mesh>
-            )
-          })}
-          
-          {/* Additional fire particles */}
-          {Array.from({ length: 12 }).map((_, i) => {
-            const angle = (i / 12) * Math.PI * 2
-            return (
-              <mesh 
-                key={`fire-${i}`} 
-                position={[
-                  Math.cos(angle + wingFlap) * 2, 
-                  Math.sin(wingFlap + i) * 1,
-                  Math.sin(angle + wingFlap) * 2
-                ]}
-              >
-                <sphereGeometry args={[0.15, 4, 4]} />
-                <meshStandardMaterial 
-                  color="#FF6600"
-                  emissive="#FF4400"
-                  emissiveIntensity={1.5}
-                  transparent 
-                  opacity={0.8}
-                />
-              </mesh>
-            )
-          })}
-        </group>
-      )}
+      {/* Health indicator above dragon */}
+      <group position={[0, 6, 0]}>
+        <mesh>
+          <planeGeometry args={[4, 0.5]} />
+          <meshStandardMaterial color="#FF0000" transparent opacity={0.8} />
+        </mesh>
+        <mesh position={[0, 0, 0.01]} scale={[dragon.health / 5, 1, 1]}>
+          <planeGeometry args={[4, 0.5]} />
+          <meshStandardMaterial color="#00FF00" transparent opacity={0.9} />
+        </mesh>
+      </group>
     </group>
   )
 }

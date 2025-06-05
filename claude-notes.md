@@ -117,6 +117,16 @@ Refined dragon entrance and death animations
 - ✅ **Performance Improvements**: Staggered dragon death explosions with 300ms delays to prevent render overload
 - ✅ **Massive Castle Enhancement**: Completely redesigned castle with detailed architecture and medieval authenticity
 - ✅ **Fixed Dragon Death Issues**: Resolved dismantling, crash, and timing problems with simplified stable animation
+- ✅ **Dragon Confetti Piñata System**: Replaced complex death animation with instant colorful confetti explosion
+
+## Dragon Confetti Piñata Features
+- **Instant Death**: Dragon disappears immediately when health reaches 0 (no falling animation)
+- **Colorful Confetti**: 30-40 pieces of bright confetti explode from dragon position like a piñata
+- **Realistic Physics**: Confetti pieces have gravity, bounce on ground, and scatter naturally
+- **Performance Optimized**: Simple box geometry with rotation animation, 8-second cleanup
+- **5 Vibrant Colors**: Pink, green, gold, orange, purple for maximum celebration effect
+- **Better Victory Timing**: Victory message appears after 1 second for immediate satisfaction
+- **Redder Dragon Sky**: Enhanced atmospheric effects with increased turbidity and lower sun position
 
 ## Dragon Death Optimization
 - **Prevented Dismantling**: Reduced rotation speeds from 0.8-1.0 to 0.2-0.3 and removed Z-axis rotation
