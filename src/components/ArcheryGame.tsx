@@ -17,20 +17,8 @@ const GEOMETRIES = {
   plane: new THREE.PlaneGeometry(200, 200)
 }
 
-const MATERIALS = {
-  wood: new THREE.MeshStandardMaterial({ color: "#8B4513", roughness: 0.9 }),
-  woodDark: new THREE.MeshStandardMaterial({ color: "#654321", roughness: 0.8 }),
-  metal: new THREE.MeshStandardMaterial({ color: "#2F2F2F", metalness: 0.8, roughness: 0.2 }),
-  ground: new THREE.MeshStandardMaterial({ color: "#228B22", roughness: 0.8, metalness: 0.1 }),
-  leaves: new THREE.MeshStandardMaterial({ color: "#228B22", roughness: 0.7 }),
-  leavesLight: new THREE.MeshStandardMaterial({ color: "#32CD32", roughness: 0.7 }),
-  castle: new THREE.MeshStandardMaterial({ color: "#696969", roughness: 0.9 }),
-  roof: new THREE.MeshStandardMaterial({ color: "#8B0000", roughness: 0.7 }),
-  enemyBody: new THREE.MeshStandardMaterial({ color: "#8B4513", roughness: 0.8 }),
-  enemyCap: new THREE.MeshStandardMaterial({ color: "#D2691E", roughness: 0.7 }),
-  white: new THREE.MeshStandardMaterial({ color: "#FFFFFF" }),
-  black: new THREE.MeshStandardMaterial({ color: "#000000" })
-}
+// Pre-created materials for performance - will be implemented in future optimization phase
+// const MATERIALS = { ... }
 
 function DynamicSky({ dragon, victoryTransition }: { dragon: any, victoryTransition: boolean }) {
   const [skyTransition, setSkyTransition] = useState(0)
