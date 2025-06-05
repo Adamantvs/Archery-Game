@@ -602,11 +602,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
               setScore((prev: number) => prev + 10) // Big score bonus for dragon
               
-              // Show small victory message immediately
-              setShowVictoryMessage(true)
-              
               // Victory timing now handled by ground impact
               // Dragon will explode when hitting ground and then show victory
+              // Don't show victory immediately
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
@@ -853,9 +851,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               setDragon((prev: any) => ({ ...prev, phase: 'dying', dyingStartTime: Date.now() }))
               setScore((prev: number) => prev + 20) // Bigger bonus for rocket dragon kill
               
-              setShowVictoryMessage(true)
               // Victory timing now handled by ground impact
               // Dragon will explode when hitting ground and then show victory
+              // Don't show victory immediately
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
@@ -1052,10 +1050,10 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
           onPositionUpdate={(newPosition) => {
             // Check if this is a ground impact signal
             if (Array.isArray(newPosition) && newPosition.length > 3 && (newPosition as any)[3] === 'ground_impact') {
-              // Create staggered ground explosions to prevent crash
+              // Single ground explosion to prevent crash
               const baseTime = Date.now()
               
-              // Main explosion immediately
+              // Only one main explosion
               setExplosions((prev: any[]) => [
                 ...prev,
                 {
@@ -1065,30 +1063,16 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
                 }
               ])
               
-              // Stagger remaining explosions to prevent overload
-              Array.from({ length: 3 }, (_, i) => {
-                setTimeout(() => {
-                  setExplosions((prev: any[]) => [
-                    ...prev,
-                    {
-                      id: baseTime + 100 + i,
-                      position: [
-                        newPosition[0] + (Math.random() - 0.5) * 6,
-                        0,
-                        newPosition[2] + (Math.random() - 0.5) * 6
-                      ],
-                      createdAt: Date.now(),
-                    }
-                  ])
-                }, i * 300)
-              })
+              // Show victory message after longer delay
+              setTimeout(() => {
+                setShowVictoryMessage(true)
+              }, 1500) // Show victory 1.5 seconds after ground impact
               
-              // Remove dragon after impact explosion
+              // Remove dragon and trigger full victory after longer delay
               setTimeout(() => {
                 setDragon(null)
-                setShowVictoryMessage(false)
                 setDragonDefeated(true)
-              }, 2000) // 2 seconds after ground impact
+              }, 4000) // 4 seconds after ground impact for full victory
               
               // Update position without the signal
               setDragon((prev: any) => prev ? { ...prev, currentPosition: [newPosition[0], newPosition[1], newPosition[2]] } : null)
@@ -2764,15 +2748,15 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
         newPosition[2] += direction.z * delta
       }
     } else if (dragon.phase === 'dying') {
-      // Dramatic slow-motion falling death animation
-      const fallSpeed = 4 // Slow motion fall
+      // Simplified falling death animation
+      const fallSpeed = 6 // Faster fall to reduce animation time
       
-      // Fall straight down with gravity in slow motion
+      // Fall straight down with minimal drift
       newPosition[1] -= fallSpeed * delta
       
-      // Add very slight drift to keep fall natural but stable
-      newPosition[0] += Math.sin(state.clock.elapsedTime * 1) * 0.3 * delta
-      newPosition[2] += Math.cos(state.clock.elapsedTime * 0.8) * 0.2 * delta
+      // Minimal drift to keep fall natural
+      newPosition[0] += Math.sin(state.clock.elapsedTime * 0.5) * 0.1 * delta
+      newPosition[2] += Math.cos(state.clock.elapsedTime * 0.3) * 0.1 * delta
       
       // Check for ground collision and trigger explosion
       if (newPosition[1] <= 2 && dragon.phase === 'dying') {
@@ -2790,10 +2774,10 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     
     // Handle dragon orientation based on phase
     if (dragon.phase === 'dying') {
-      // Gentle tumbling while falling (keep structure intact)
-      dragonRef.current.rotation.x += 0.8 * delta
-      dragonRef.current.rotation.y += 1 * delta
-      dragonRef.current.rotation.z += 0.5 * delta
+      // Very gentle rotation to prevent dismantling
+      dragonRef.current.rotation.x += 0.2 * delta
+      dragonRef.current.rotation.y += 0.3 * delta
+      // No Z rotation to keep structure stable
     } else {
       // Face towards player when alive
       if (playerPosition) {
