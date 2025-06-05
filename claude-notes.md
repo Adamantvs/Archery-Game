@@ -13,6 +13,7 @@
 - Added dragon fire attack system with glowing projectiles and collision detection
 - Enhanced dragon attacks: 3 tracking fire projectiles with spread pattern
 - Improved fire pattern: triangle formation with stronger tracking (0.5 strength)
+- Major performance optimizations: shared geometries, optimized collisions, reduced particles
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats

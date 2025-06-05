@@ -560,7 +560,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       trail: [startPosition.clone()],
     }
 
-    setArrows((prev: any[]) => [...prev, newArrow])
+    setArrows((prev: any[]) => {
+      // Limit max arrows for performance (keep only last 15)
+      const newArrows = [...prev, newArrow]
+      return newArrows.length > 15 ? newArrows.slice(-15) : newArrows
+    })
     setBowDrawn(true)
     setTimeout(() => setBowDrawn(false), 200)
   }, [])
@@ -581,9 +585,15 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     }
   }, [lastDamageTime, setPlayerHealth, setDamageFlash])
 
-  // Check for collisions (arrows, enemies, explosions)
+  // Check for collisions (arrows, enemies, explosions) - throttled for performance
   useEffect(() => {
+    let lastCollisionCheck = 0
+    const collisionInterval = 16 // ~60fps collision checking
+    
     const checkCollisions = () => {
+      const now = Date.now()
+      if (now - lastCollisionCheck < collisionInterval) return
+      lastCollisionCheck = now
       const playerPosition = controlsRef.current?.getObject()?.position
       
       // Check enemy-player collisions
@@ -1441,7 +1451,11 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
             setDragon((prev: any) => prev ? { ...prev, currentPosition: newPosition } : null)
           }}
           onFireAttack={(fireProjectile) => {
-            setFireProjectiles((prev: any[]) => [...prev, fireProjectile])
+            setFireProjectiles((prev: any[]) => {
+              // Limit max fire projectiles for performance (keep only last 20)
+              const newProjectiles = [...prev, fireProjectile]
+              return newProjectiles.length > 20 ? newProjectiles.slice(-20) : newProjectiles
+            })
           }}
         />
       )}
@@ -2328,34 +2342,36 @@ function ConfettiPiece({ piece }: { piece: any }) {
   const [currentPosition, setCurrentPosition] = useState(piece.position)
   const [currentVelocity, setCurrentVelocity] = useState(piece.velocity)
 
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     if (meshRef.current) {
-      // Apply slow-motion gravity and update position
-      const slowMotionFactor = 0.3 // Slow motion effect
-      const newVelocity = [...currentVelocity]
-      newVelocity[1] -= 9.8 * delta * slowMotionFactor // Slower gravity
+      // Update confetti physics less frequently for performance
+      if (state.clock.elapsedTime % 2 < delta) { // Update every 2nd frame
+        const slowMotionFactor = 0.3 // Slow motion effect
+        const newVelocity = [...currentVelocity]
+        newVelocity[1] -= 9.8 * delta * 2 * slowMotionFactor // Adjust for frame skipping
 
-      const newPosition = [
-        currentPosition[0] + newVelocity[0] * delta * slowMotionFactor,
-        currentPosition[1] + newVelocity[1] * delta * slowMotionFactor,
-        currentPosition[2] + newVelocity[2] * delta * slowMotionFactor
-      ]
+        const newPosition = [
+          currentPosition[0] + newVelocity[0] * delta * 2 * slowMotionFactor,
+          currentPosition[1] + newVelocity[1] * delta * 2 * slowMotionFactor,
+          currentPosition[2] + newVelocity[2] * delta * 2 * slowMotionFactor
+        ]
 
-      // Simple bounce when hitting ground (also slowed)
-      if (newPosition[1] <= 0) {
-        newPosition[1] = 0
-        newVelocity[1] = Math.abs(newVelocity[1]) * 0.4 // Slightly higher bounce for slow motion
-        newVelocity[0] *= 0.9 // Less friction for better slow motion effect
-        newVelocity[2] *= 0.9 // Less friction for better slow motion effect
+        // Simple bounce when hitting ground (also slowed)
+        if (newPosition[1] <= 0) {
+          newPosition[1] = 0
+          newVelocity[1] = Math.abs(newVelocity[1]) * 0.4 // Slightly higher bounce for slow motion
+          newVelocity[0] *= 0.9 // Less friction for better slow motion effect
+          newVelocity[2] *= 0.9 // Less friction for better slow motion effect
+        }
+
+        setCurrentPosition(newPosition)
+        setCurrentVelocity(newVelocity)
+
+        // Update mesh position
+        meshRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
       }
-
-      setCurrentPosition(newPosition)
-      setCurrentVelocity(newVelocity)
-
-      // Update mesh position
-      meshRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
       
-      // Add slower rotation for dreamy effect
+      // Add slower rotation for dreamy effect (outside frame skip)
       meshRef.current.rotation.x += delta * 2
       meshRef.current.rotation.y += delta * 1.5
     }
@@ -3311,22 +3327,24 @@ function EnemyPop({ position }: { position: number[] }) {
         setOpacity((prev: number) => Math.max(prev - delta * 2, 0))
       }
 
-      // Update particles
-      setParticles((prev: any[]) =>
-        prev.map((particle) => ({
-          ...particle,
-          position: [
-            particle.position[0] + particle.velocity[0] * delta,
-            particle.position[1] + particle.velocity[1] * delta,
-            particle.position[2] + particle.velocity[2] * delta,
-          ],
-          velocity: [
-            particle.velocity[0] * 0.98, // Air resistance
-            particle.velocity[1] - 9.8 * delta, // Gravity
-            particle.velocity[2] * 0.98,
-          ],
-        })),
-      )
+      // Update particles less frequently for performance
+      if (state.clock.elapsedTime % 3 < delta) { // Update every 3rd frame
+        setParticles((prev: any[]) =>
+          prev.map((particle) => ({
+            ...particle,
+            position: [
+              particle.position[0] + particle.velocity[0] * delta * 3,
+              particle.position[1] + particle.velocity[1] * delta * 3,
+              particle.position[2] + particle.velocity[2] * delta * 3,
+            ],
+            velocity: [
+              particle.velocity[0] * 0.94, // Air resistance
+              particle.velocity[1] - 9.8 * delta * 3, // Gravity
+              particle.velocity[2] * 0.94,
+            ],
+          })),
+        )
+      }
 
       // Rotate for dramatic effect
       popRef.current.rotation.y += delta * 10
