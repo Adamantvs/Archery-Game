@@ -321,6 +321,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
+  const [fireProjectiles, setFireProjectiles] = useState<any[]>([])
   const [bowDrawn, setBowDrawn] = useState(false)
   const [bombs, setBombs] = useState<any[]>([])
   const [explosions, setExplosions] = useState<any[]>([])
@@ -420,6 +421,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       // Reset all Game component states to initial values
       setArrows([])
       setRockets([])
+      setFireProjectiles([])
       setBowDrawn(false)
       setExplosions([])
       setEnemyPops([])
@@ -562,6 +564,29 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
             if (distance < 1.2) { // Enemy collision radius
               damagePlayer(10) // 10 damage per hit
             }
+          }
+        })
+
+        // Check fire projectile-player collisions
+        fireProjectiles.forEach((fire) => {
+          const firePos = fire.position.clone ? fire.position : new THREE.Vector3(...fire.position)
+          const distance = firePos.distanceTo(playerPosition)
+          
+          if (distance < 1.0) { // Fire projectile collision radius
+            damagePlayer(fire.damage) // Use the fire projectile's damage value
+            
+            // Create explosion effect at impact
+            setExplosions((prev: any[]) => [
+              ...prev,
+              {
+                id: Date.now(),
+                position: [firePos.x, firePos.y, firePos.z],
+                createdAt: Date.now(),
+              },
+            ])
+            
+            // Remove the fire projectile
+            setFireProjectiles((prev: any[]) => prev.filter((f) => f.id !== fire.id))
           }
         })
       }
@@ -1168,7 +1193,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     }
 
     checkCollisions()
-  }, [arrows, rockets, bombs, enemies, dragon, playerHealth, lastDamageTime, damagePlayer, setDragon, setKillCount, setScore, setShowVictoryMessage])
+  }, [arrows, rockets, fireProjectiles, bombs, enemies, dragon, playerHealth, lastDamageTime, damagePlayer, setDragon, setKillCount, setScore, setShowVictoryMessage])
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
@@ -1375,6 +1400,9 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
           onPositionUpdate={(newPosition) => {
             setDragon((prev: any) => prev ? { ...prev, currentPosition: newPosition } : null)
           }}
+          onFireAttack={(fireProjectile) => {
+            setFireProjectiles((prev: any[]) => [...prev, fireProjectile])
+          }}
         />
       )}
 
@@ -1416,6 +1444,20 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
           }}
           onRemove={() => {
             setRockets((prev: any[]) => prev.filter((r) => r.id !== rocket.id))
+          }}
+        />
+      ))}
+
+      {/* Render fire projectiles */}
+      {fireProjectiles.map((fire) => (
+        <FireProjectile
+          key={fire.id}
+          fire={fire}
+          onUpdate={(updatedFire) => {
+            setFireProjectiles((prev: any[]) => prev.map((f) => (f.id === fire.id ? updatedFire : f)))
+          }}
+          onRemove={() => {
+            setFireProjectiles((prev: any[]) => prev.filter((f) => f.id !== fire.id))
           }}
         />
       ))}
@@ -2154,6 +2196,75 @@ function Rocket({ rocket, onUpdate, onRemove }: { rocket: any; onUpdate: (rocket
           opacity={0.6}
         />
       </mesh>
+    </group>
+  )
+}
+
+function FireProjectile({ fire, onUpdate, onRemove }: { fire: any; onUpdate: (fire: any) => void; onRemove: () => void }) {
+  const groupRef = useRef<THREE.Group>(null)
+
+  useFrame((_state, delta) => {
+    // Update fire projectile position - no gravity, just straight travel
+    const newPosition = fire.position.clone ? fire.position.clone() : new THREE.Vector3(...fire.position)
+    const velocity = new THREE.Vector3(...fire.velocity)
+    
+    newPosition.add(velocity.clone().multiplyScalar(delta))
+
+    // Update age
+    const newAge = fire.age + delta
+
+    // Remove after 5 seconds or if it hits the ground
+    if (newAge > 5 || newPosition.y < 0) {
+      onRemove()
+      return
+    }
+
+    // Update fire projectile group position
+    if (groupRef.current) {
+      groupRef.current.position.copy(newPosition)
+    }
+
+    // Update the fire state
+    onUpdate({
+      ...fire,
+      position: newPosition,
+      age: newAge
+    })
+  })
+
+  return (
+    <group ref={groupRef} position={fire.position}>
+      {/* Fire ball core */}
+      <mesh>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FF4500" 
+          emissive="#FF4500"
+          emissiveIntensity={1.0}
+          transparent 
+          opacity={0.8}
+        />
+      </mesh>
+      
+      {/* Fire glow effect */}
+      <mesh scale={[1.5, 1.5, 1.5]}>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial 
+          color="#FFD700" 
+          emissive="#FFD700"
+          emissiveIntensity={0.5}
+          transparent 
+          opacity={0.3}
+        />
+      </mesh>
+
+      {/* Fire light */}
+      <pointLight 
+        intensity={5} 
+        distance={10} 
+        color="#FF4500" 
+        decay={2} 
+      />
     </group>
   )
 }
@@ -3252,12 +3363,12 @@ function EnemyPop({ position }: { position: number[] }) {
   )
 }
 
-function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any, playerPosition?: THREE.Vector3, onPositionUpdate: (position: number[]) => void }) {
+function DragonBoss({ dragon, playerPosition, onPositionUpdate, onFireAttack }: { dragon: any, playerPosition?: THREE.Vector3, onPositionUpdate: (position: number[]) => void, onFireAttack: (fireProjectile: any) => void }) {
   const dragonRef = useRef<THREE.Group>(null)
   const [bobOffset, setBobOffset] = useState(0)
   const [wingFlap, setWingFlap] = useState(0)
   const [currentPosition, setCurrentPosition] = useState(dragon.position)
-  const [_attackTimer, setAttackTimer] = useState(0)
+  const [attackTimer, setAttackTimer] = useState(0)
 
   // Dragon AI and movement
   useFrame((state, delta) => {
@@ -3266,6 +3377,27 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     setBobOffset((prev: number) => prev + delta * 2)
     setWingFlap((prev: number) => prev + delta * 8)
     setAttackTimer((prev: number) => prev + delta)
+
+    // Fire attack every 3 seconds when circling
+    if (dragon.phase === 'circling' && attackTimer > 3) {
+      // Calculate direction to player
+      const dragonPos = new THREE.Vector3(...currentPosition)
+      const direction = new THREE.Vector3()
+      direction.subVectors(playerPosition, dragonPos)
+      direction.normalize()
+
+      // Create fire projectile
+      const fireProjectile = {
+        id: Date.now() + Math.random(),
+        position: [...currentPosition],
+        velocity: [direction.x * 20, direction.y * 20, direction.z * 20], // Fast fire projectile
+        damage: 25,
+        age: 0
+      }
+
+      onFireAttack(fireProjectile)
+      setAttackTimer(0) // Reset attack timer
+    }
 
     // Update dragon's current position based on phase
     let newPosition = [...currentPosition]

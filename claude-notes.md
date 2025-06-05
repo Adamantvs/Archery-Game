@@ -9,6 +9,7 @@
 - Reverted from c353dcc to 14462b8 due to game bugs
 - Implemented simplified time-based booster system (no fuel needed)
 - Fixed booster system: proper double-click detection + hold-to-maintain behavior
+- Removed height limit for smooth booster experience
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats
