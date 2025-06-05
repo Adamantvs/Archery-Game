@@ -1905,38 +1905,10 @@ function Ground() {
   }, [])
 
   return (
-    <>
-      {/* Main ground plane */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[200, 200]} />
-        <primitive object={groundMaterial} attach="material" />
-      </mesh>
-      
-      {/* Subtle color variation patches for realism */}
-      {Array.from({ length: 12 }).map((_, i) => {
-        const x = (Math.random() - 0.5) * 150
-        const z = (Math.random() - 0.5) * 150
-        const size = 8 + Math.random() * 12
-        const isLight = Math.random() > 0.5
-        return (
-          <mesh 
-            key={i} 
-            position={[x, 0.01, z]} 
-            rotation={[-Math.PI / 2, 0, 0]} 
-            receiveShadow
-          >
-            <planeGeometry args={[size, size]} />
-            <meshStandardMaterial 
-              color={isLight ? "#32CD32" : "#1F5F1F"}
-              roughness={0.95}
-              metalness={0.02}
-              transparent
-              opacity={0.3}
-            />
-          </mesh>
-        )
-      })}
-    </>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[200, 200]} />
+      <primitive object={groundMaterial} attach="material" />
+    </mesh>
   )
 }
 
