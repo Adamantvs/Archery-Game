@@ -1,21 +1,13 @@
 # Claude Code Session Notes
 
-## Session Status
-**Current Step**: Cinematic Medieval Environment Complete
-**Starting Commit**: a8beb98 (feat: implement aggressive demon AI improvements and scoring system)
-**Session Type**: Performance optimization, visual enhancements, and cinematic transformation
+## Current Session: App Initialization  
+**Started from commit:** c353dcc
+**Reverted to:** 14462b8 (fix: implement ref-based fuel tracking to eliminate state lag issues)
+**Current step:** Testing reverted game version
 
-## Session Commits (Reverted from later problematic commits)
-- 2b16e98 feat: increase enemy wandering radius around castle
-- 1608062 feat: fix collision detection, add crate regeneration, and redesign enemies
-- c653b53 feat: fix enemy death explosions, add castle collision detection, and ensure proper regeneration
-- f51bc8e feat: enhance enemies with angry faces, increased speed, more crates, and explosive damage
-- f34b13b feat: redesign crossbow with high-tech tactical aesthetics
-- f4b6f7d feat: add flying bat-winged enemies with player detection and pursuit
-- 8ab4bce feat: implement player health system with damage mechanics and game over ← **CURRENT**
-
-## Current Task
-Refined dragon entrance and death animations
+### Session Commits
+- Reverted from c353dcc to 14462b8 due to game bugs
+- Implemented simplified time-based booster system (no fuel needed)
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats

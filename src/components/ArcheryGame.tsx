@@ -101,7 +101,6 @@ export default function ArcheryGame() {
   const [damageFlash, setDamageFlash] = useState(0)
   const [victoryTransition, setVictoryTransition] = useState(false)
   const [resetGameTrigger, setResetGameTrigger] = useState(0)
-  const [boosterFuel, setBoosterFuel] = useState(100)
 
   return (
     <div className="w-full h-screen relative">
@@ -129,8 +128,6 @@ export default function ArcheryGame() {
           setVictoryTransition={setVictoryTransition}
           victoryTransition={victoryTransition}
           resetGameTrigger={resetGameTrigger}
-          boosterFuel={boosterFuel}
-          setBoosterFuel={setBoosterFuel}
         />
       </Canvas>
 
@@ -184,20 +181,6 @@ export default function ArcheryGame() {
             <div className="text-white text-xs mt-1 text-center font-medieval">{Math.round(playerHealth)}/100</div>
           </div>
 
-          {/* Booster Fuel */}
-          <div className="bg-black bg-opacity-70 p-3 rounded-lg">
-            <div className="text-white text-sm font-bold mb-1 font-medieval">BOOSTER</div>
-            <div className="w-48 h-4 bg-gray-800 rounded-full overflow-hidden border-2 border-gray-600">
-              <div 
-                className={`h-full transition-all duration-300 ${
-                  boosterFuel > 60 ? 'bg-blue-500' : 
-                  boosterFuel > 30 ? 'bg-orange-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${Math.max(0, boosterFuel)}%` }}
-              />
-            </div>
-            <div className="text-white text-xs mt-1 text-center font-medieval">{Math.round(boosterFuel)}/100</div>
-          </div>
         </div>
 
         {/* Crosshair */}
@@ -250,7 +233,6 @@ export default function ArcheryGame() {
                   setVictoryTransition(false)
                   setDamageFlash(0)
                   setDragon(null)
-                  setBoosterFuel(100)
                   // Trigger game component reset
                   setResetGameTrigger(prev => prev + 1)
                 }}
@@ -300,7 +282,7 @@ export default function ArcheryGame() {
             <p className="text-xs font-medieval">Mouse: Aim</p>
             <p className="text-xs font-medieval">WASD: Move</p>
             <p className="text-xs font-medieval">Spacebar: Jump</p>
-            <p className="text-xs text-blue-400 font-medieval">Double-click + Hold Space: Booster Jump</p>
+            <p className="text-xs text-blue-400 font-medieval">Double-click + Hold Space: Booster Jump (1s max)</p>
             <p className="text-xs font-medieval">Hold Shift: Sprint</p>
             <p className="text-xs mt-2 font-medieval">Shoot the bomb crates and enemies!</p>
             <p className="text-xs text-yellow-400 mt-2 font-medieval">⚠️ Avoid enemies and explosions - they damage you!</p>
@@ -313,7 +295,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory, setDamageFlash, setVictoryTransition, victoryTransition, resetGameTrigger, boosterFuel, setBoosterFuel }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory, setDamageFlash, setVictoryTransition, victoryTransition, resetGameTrigger }: { 
   setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
   setPlayerHealth: Dispatch<SetStateAction<number>>, 
@@ -335,9 +317,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   setDamageFlash: Dispatch<SetStateAction<number>>,
   setVictoryTransition: Dispatch<SetStateAction<boolean>>,
   victoryTransition: boolean,
-  resetGameTrigger: number,
-  boosterFuel: number,
-  setBoosterFuel: Dispatch<SetStateAction<number>>
+  resetGameTrigger: number
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -1365,7 +1345,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
         victoryTransition={victoryTransition}
       />
 
-      <Player boosterFuel={boosterFuel} setBoosterFuel={setBoosterFuel} />
+      <Player />
       <Crossbow drawn={bowDrawn} />
       <MedievalEnvironment />
 
@@ -1645,7 +1625,7 @@ function Explosion({ position }: { position: number[] }) {
   )
 }
 
-function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoosterFuel: Dispatch<SetStateAction<number>> }) {
+function Player() {
   const { camera } = useThree()
   const direction = useRef(new THREE.Vector3())
   const keys = useRef<Record<string, boolean>>({})
@@ -1654,12 +1634,8 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
   const lastSpacePress = useRef(0)
   const isBoosterActive = useRef(false)
   const maxBoosterHeight = useRef(12) // Maximum height with booster
-  const currentFuel = useRef(boosterFuel) // Local fuel tracking for immediate checks
-
-  // Keep ref in sync with prop
-  useEffect(() => {
-    currentFuel.current = boosterFuel
-  }, [boosterFuel])
+  const boosterStartTime = useRef(0) // Track when booster started
+  const maxBoosterDuration = 1000 // 1 second in milliseconds
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1672,8 +1648,9 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
         
         // Double click detected (within 300ms)
         if (timeSinceLastPress < 300 && timeSinceLastPress > 50) {
-          if (currentFuel.current > 0 && !isBoosterActive.current) {
+          if (!isBoosterActive.current) {
             isBoosterActive.current = true
+            boosterStartTime.current = currentTime
           }
         }
         
@@ -1704,8 +1681,6 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
     const jumpForce = 8
     const gravity = -20
     const boosterForce = 15
-    const boosterFuelDrain = 25 // Fuel drain per second when active
-
     direction.current.set(0, 0, 0)
 
     // Movement with sprint
@@ -1722,22 +1697,18 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
 
     camera.position.add(direction.current)
 
-    // Booster Jump Logic
-    if (isBoosterActive.current && currentFuel.current > 0 && camera.position.y < maxBoosterHeight.current) {
-      // Calculate new fuel value
-      const newFuelValue = Math.max(0, currentFuel.current - boosterFuelDrain * delta)
+    // Booster Jump Logic - Time-based (max 1 second)
+    if (isBoosterActive.current && camera.position.y < maxBoosterHeight.current) {
+      const currentTime = Date.now()
+      const timeSinceStart = currentTime - boosterStartTime.current
       
-      // Update both ref and state
-      currentFuel.current = newFuelValue
-      setBoosterFuel(newFuelValue)
-      
-      // Apply upward boost force
-      jumpVelocity.current = boosterForce
-      isJumping.current = true
-      
-      // Deactivate booster if fuel depleted or max height reached
-      if (newFuelValue <= 0 || camera.position.y >= maxBoosterHeight.current) {
+      // Check if max duration exceeded or spacebar released
+      if (timeSinceStart >= maxBoosterDuration || !keys.current["Space"]) {
         isBoosterActive.current = false
+      } else {
+        // Apply upward boost force
+        jumpVelocity.current = boosterForce
+        isJumping.current = true
       }
     }
     // Regular Jumping (only when not boosting)
@@ -1766,13 +1737,6 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
       if (camera.position.y < 2) {
         camera.position.y = 2
       }
-    }
-
-    // Regenerate booster fuel when on ground and not boosting
-    if (camera.position.y <= 2.1 && !isBoosterActive.current) {
-      const newFuelValue = Math.min(100, currentFuel.current + 30 * delta)
-      currentFuel.current = newFuelValue
-      setBoosterFuel(newFuelValue) // Regenerate 30% per second
     }
   })
 
