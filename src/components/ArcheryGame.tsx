@@ -998,26 +998,51 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   return (
     <>
       <PointerLockControls ref={controlsRef} />
-      <ambientLight intensity={0.4} />
+      
+      {/* CINEMATIC LIGHTING SETUP */}
+      {/* Atmospheric ambience with subtle blue tint */}
+      <ambientLight intensity={0.2} color="#B3D9FF" />
+      
+      {/* Golden Hour Main Light - warm dramatic lighting */}
       <directionalLight
         position={[10, 10, 5]}
-        intensity={1}
+        intensity={1.2}
+        color="#FFB366"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
         shadow-camera-far={50}
         shadow-camera-left={-20}
         shadow-camera-right={20}
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
+      
+      {/* Rim Lighting - cool blue backlight for depth */}
+      <directionalLight
+        position={[-10, 8, -5]}
+        intensity={0.8}
+        color="#4A90E2"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={30}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
+      />
+      
+      {/* Atmospheric Fog for volumetric feel */}
+      <fog attach="fog" args={['#87CEEB', 20, 200]} />
 
+      {/* Cinematic Sky with dramatic low-angle golden hour */}
       <Sky 
-        sunPosition={dragon && dragon.active ? [100, 10, 100] : [100, 20, 100]}
-        turbidity={dragon && dragon.active ? 20 : 2}
-        rayleigh={dragon && dragon.active ? 0.5 : 2}
-        mieCoefficient={dragon && dragon.active ? 0.1 : 0.005}
-        mieDirectionalG={dragon && dragon.active ? 0.95 : 0.8}
+        sunPosition={dragon && dragon.active ? [50, 8, 100] : [50, 8, 100]}
+        turbidity={dragon && dragon.active ? 15 : 8}
+        rayleigh={dragon && dragon.active ? 0.8 : 1.5}
+        mieCoefficient={dragon && dragon.active ? 0.15 : 0.01}
+        mieDirectionalG={dragon && dragon.active ? 0.9 : 0.7}
       />
 
       <Player />
@@ -1803,6 +1828,68 @@ function MedievalEnvironment() {
       <Forest />
       <Castle />
       <Mountains />
+      <AtmosphericParticles />
+    </>
+  )
+}
+
+function AtmosphericParticles() {
+  const particleCount = 50
+  const particles = useMemo(() => {
+    const particleData: { position: [number, number, number], velocity: [number, number, number], size: number }[] = []
+    
+    for (let i = 0; i < particleCount; i++) {
+      particleData.push({
+        position: [
+          (Math.random() - 0.5) * 100,
+          Math.random() * 15 + 2,
+          (Math.random() - 0.5) * 100
+        ],
+        velocity: [
+          (Math.random() - 0.5) * 0.2,
+          Math.random() * 0.1,
+          (Math.random() - 0.5) * 0.2
+        ],
+        size: 0.05 + Math.random() * 0.1
+      })
+    }
+    return particleData
+  }, [])
+
+  useFrame((_state, delta) => {
+    particles.forEach((particle) => {
+      // Gentle floating motion
+      particle.position[0] += particle.velocity[0] * delta
+      particle.position[1] += particle.velocity[1] * delta
+      particle.position[2] += particle.velocity[2] * delta
+      
+      // Reset particles that float too high or too far
+      if (particle.position[1] > 20) {
+        particle.position[1] = 2
+      }
+      if (Math.abs(particle.position[0]) > 50) {
+        particle.position[0] = (Math.random() - 0.5) * 100
+      }
+      if (Math.abs(particle.position[2]) > 50) {
+        particle.position[2] = (Math.random() - 0.5) * 100
+      }
+    })
+  })
+
+  return (
+    <>
+      {particles.map((particle, i) => (
+        <mesh key={i} position={particle.position}>
+          <sphereGeometry args={[particle.size]} />
+          <meshStandardMaterial 
+            color="#FFD700"
+            emissive="#FFB366"
+            emissiveIntensity={0.3}
+            transparent
+            opacity={0.6}
+          />
+        </mesh>
+      ))}
     </>
   )
 }
@@ -1810,18 +1897,46 @@ function MedievalEnvironment() {
 function Ground() {
   const groundMaterial = useMemo(() => {
     const material = new THREE.MeshStandardMaterial({
-      color: "#228B22",
-      roughness: 0.8,
-      metalness: 0.1,
+      color: "#2F5F2F", // Richer, more cinematic forest green
+      roughness: 0.9,
+      metalness: 0.05,
     })
     return material
   }, [])
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[200, 200]} />
-      <primitive object={groundMaterial} attach="material" />
-    </mesh>
+    <>
+      {/* Main ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[200, 200]} />
+        <primitive object={groundMaterial} attach="material" />
+      </mesh>
+      
+      {/* Subtle color variation patches for realism */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const x = (Math.random() - 0.5) * 150
+        const z = (Math.random() - 0.5) * 150
+        const size = 8 + Math.random() * 12
+        const isLight = Math.random() > 0.5
+        return (
+          <mesh 
+            key={i} 
+            position={[x, 0.01, z]} 
+            rotation={[-Math.PI / 2, 0, 0]} 
+            receiveShadow
+          >
+            <planeGeometry args={[size, size]} />
+            <meshStandardMaterial 
+              color={isLight ? "#32CD32" : "#1F5F1F"}
+              roughness={0.95}
+              metalness={0.02}
+              transparent
+              opacity={0.3}
+            />
+          </mesh>
+        )
+      })}
+    </>
   )
 }
 
@@ -1853,37 +1968,62 @@ function Forest() {
 }
 
 function Tree({ position }: { position: [number, number, number] }) {
+  const treeRef = useRef<THREE.Group>(null)
+  
   // Use useMemo to ensure tree dimensions are calculated once and remain stable
   const treeData = useMemo(() => {
     const height = 4 + Math.random() * 4 // 4-8 units height
     const trunkRadius = 0.15 + Math.random() * 0.1
     const leavesRadius = height * 0.25 // Proportional to height
+    const swayOffset = Math.random() * Math.PI * 2 // Random phase for wind
 
     return {
       height,
       trunkRadius,
       leavesRadius,
+      swayOffset,
     }
   }, []) // Empty dependency array ensures this only runs once
 
+  // Subtle wind sway animation
+  useFrame((state) => {
+    if (treeRef.current) {
+      const time = state.clock.elapsedTime
+      const sway = Math.sin(time * 0.5 + treeData.swayOffset) * 0.02
+      treeRef.current.rotation.z = sway
+    }
+  })
+
   return (
-    <group position={position}>
-      {/* Trunk - proper proportions */}
+    <group ref={treeRef} position={position}>
+      {/* Trunk - enhanced bark texture */}
       <mesh position={[0, treeData.height / 2, 0]} castShadow>
         <cylinderGeometry args={[treeData.trunkRadius * 0.8, treeData.trunkRadius, treeData.height]} />
-        <meshStandardMaterial color="#654321" roughness={0.9} />
+        <meshStandardMaterial 
+          color="#4A3728" 
+          roughness={0.95} 
+          metalness={0.05}
+        />
       </mesh>
 
-      {/* Leaves - proportional to tree height */}
+      {/* Leaves - deeper forest colors */}
       <mesh position={[0, treeData.height * 0.85, 0]} castShadow>
         <sphereGeometry args={[treeData.leavesRadius]} />
-        <meshStandardMaterial color="#228B22" roughness={0.7} />
+        <meshStandardMaterial 
+          color="#1F4F1F" 
+          roughness={0.8}
+          metalness={0.1}
+        />
       </mesh>
 
-      {/* Additional leaf layer for fuller look */}
+      {/* Additional leaf layer for fuller cinematic look */}
       <mesh position={[0, treeData.height * 0.7, 0]} castShadow>
         <sphereGeometry args={[treeData.leavesRadius * 0.8]} />
-        <meshStandardMaterial color="#32CD32" roughness={0.7} />
+        <meshStandardMaterial 
+          color="#2F5F2F" 
+          roughness={0.8}
+          metalness={0.1}
+        />
       </mesh>
     </group>
   )
@@ -2034,16 +2174,40 @@ function Castle() {
         ))}
       </group>
 
-      {/* Windows in main tower */}
+      {/* Windows in main tower with warm glows */}
       {[4, 7].map((y, i) => 
         [0, Math.PI/2, Math.PI, 3*Math.PI/2].map((angle, j) => {
           const x = Math.cos(angle) * 3.1
           const z = Math.sin(angle) * 3.1
           return (
-            <mesh key={`window-${i}-${j}`} position={[x, y, z]} castShadow>
-              <boxGeometry args={[0.6, 1, 0.2]} />
-              <meshStandardMaterial color="#1a1a1a" roughness={0.1} />
-            </mesh>
+            <group key={`window-${i}-${j}`} position={[x, y, z]}>
+              {/* Window frame */}
+              <mesh castShadow>
+                <boxGeometry args={[0.6, 1, 0.2]} />
+                <meshStandardMaterial color="#2a2a2a" roughness={0.8} />
+              </mesh>
+              
+              {/* Warm window glow */}
+              <mesh position={[0, 0, -0.05]}>
+                <planeGeometry args={[0.5, 0.8]} />
+                <meshStandardMaterial 
+                  color="#FFB366"
+                  emissive="#FF8C42"
+                  emissiveIntensity={0.6}
+                  transparent
+                  opacity={0.8}
+                />
+              </mesh>
+              
+              {/* Subtle interior light */}
+              <pointLight 
+                position={[0, 0, -0.3]}
+                intensity={0.5}
+                distance={5}
+                color="#FFB366"
+                decay={2}
+              />
+            </group>
           )
         })
       )}
