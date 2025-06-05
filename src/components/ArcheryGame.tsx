@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect, useMemo } from "react"
+import { useRef, useState, useEffect, useMemo, useCallback, Dispatch, SetStateAction } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { PointerLockControls, Sky } from "@react-three/drei"
 import * as THREE from "three"
@@ -15,7 +15,7 @@ export default function ArcheryGame() {
   const [showDragonWarning, setShowDragonWarning] = useState(false)
   const [dragonDefeated, setDragonDefeated] = useState(false)
   const [showVictoryMessage, setShowVictoryMessage] = useState(false)
-  const [dragonEntering, setDragonEntering] = useState(false)
+  const [_dragonEntering, setDragonEntering] = useState(false)
 
   return (
     <div className="w-full h-screen relative">
@@ -24,7 +24,7 @@ export default function ArcheryGame() {
           setIsLocked={setIsLocked} 
           playerHealth={playerHealth} 
           setPlayerHealth={setPlayerHealth} 
-          score={score} 
+          _score={score} 
           setScore={setScore}
           killCount={killCount}
           setKillCount={setKillCount}
@@ -35,7 +35,7 @@ export default function ArcheryGame() {
           setShowDragonWarning={setShowDragonWarning}
           setDragonDefeated={setDragonDefeated}
           setShowVictoryMessage={setShowVictoryMessage}
-          setDragonEntering={setDragonEntering}
+          _setDragonEntering={setDragonEntering}
         />
       </Canvas>
 
@@ -154,22 +154,22 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, setDragonEntering }: { 
-  setIsLocked: (locked: boolean) => void, 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering }: { 
+  setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
-  setPlayerHealth: (health: number) => void, 
-  score: number, 
-  setScore: (score: number) => void,
+  setPlayerHealth: Dispatch<SetStateAction<number>>, 
+  _score: number, 
+  setScore: Dispatch<SetStateAction<number>>,
   killCount: number,
-  setKillCount: (count: number) => void,
+  setKillCount: Dispatch<SetStateAction<number>>,
   dragon: any,
-  setDragon: (dragon: any) => void,
+  setDragon: Dispatch<SetStateAction<any>>,
   dragonSpawned: boolean,
-  setDragonSpawned: (spawned: boolean) => void,
-  setShowDragonWarning: (show: boolean) => void,
-  setDragonDefeated: (defeated: boolean) => void,
-  setShowVictoryMessage: (show: boolean) => void,
-  setDragonEntering: (entering: boolean) => void
+  setDragonSpawned: Dispatch<SetStateAction<boolean>>,
+  setShowDragonWarning: Dispatch<SetStateAction<boolean>>,
+  setDragonDefeated: Dispatch<SetStateAction<boolean>>,
+  setShowVictoryMessage: Dispatch<SetStateAction<boolean>>,
+  _setDragonEntering: Dispatch<SetStateAction<boolean>>
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -179,7 +179,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   const [enemies, setEnemies] = useState<any[]>([])
   const [enemyPops, setEnemyPops] = useState<any[]>([])
   const [lastDamageTime, setLastDamageTime] = useState(0)
-  const controlsRef = useRef<any>()
+  const controlsRef = useRef<any>(null)
 
   // Initialize bombs
   useEffect(() => {
@@ -292,13 +292,13 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
   }
 
   // Damage player function with cooldown
-  const damagePlayer = (damage: number) => {
+  const damagePlayer = useCallback((damage: number) => {
     const now = Date.now()
     if (now - lastDamageTime > 1000) { // 1 second damage cooldown
       setPlayerHealth((prev: number) => Math.max(0, prev - damage))
       setLastDamageTime(now)
     }
-  }
+  }, [lastDamageTime, setPlayerHealth])
 
   // Check for collisions (arrows, enemies, explosions)
   useEffect(() => {
@@ -868,7 +868,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
     }
 
     checkCollisions()
-  }, [arrows, rockets, bombs, enemies, dragon, playerHealth, lastDamageTime])
+  }, [arrows, rockets, bombs, enemies, dragon, playerHealth, lastDamageTime, damagePlayer, setDragon, setKillCount, setScore, setShowVictoryMessage])
 
   // Clean up old explosions and enemy pops
   useEffect(() => {
@@ -934,7 +934,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
         setDragon((prev: any) => prev ? { ...prev, phase: 'circling' } : null)
       }, 3000)
     }
-  }, [killCount, dragonSpawned])
+  }, [killCount, dragonSpawned, setDragon, setDragonSpawned, setShowDragonWarning])
 
   const handleRocketShoot = () => {
     if (!controlsRef.current) return
@@ -1051,7 +1051,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, score, setScore, kil
           playerPosition={controlsRef.current?.getObject()?.position}
           onPositionUpdate={(newPosition) => {
             // Check if this is a ground impact signal
-            if (Array.isArray(newPosition) && newPosition.length > 3 && newPosition[3] === 'ground_impact') {
+            if (Array.isArray(newPosition) && newPosition.length > 3 && (newPosition as any)[3] === 'ground_impact') {
               // Create massive ground explosion
               setExplosions((prev: any[]) => [
                 ...prev,
@@ -1333,7 +1333,7 @@ function Explosion({ position }: { position: number[] }) {
 
 function Player() {
   const { camera } = useThree()
-  const _velocity = useRef(new THREE.Vector3())
+  const _unusedVelocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
   const keys = useRef<Record<string, boolean>>({})
   const isJumping = useRef(false)
@@ -2043,17 +2043,17 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
   }
 
   // Flying and player-following AI
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     if (enemyRef.current && enemy.active) {
       // Wing flapping animation
       setBobOffset((prev: number) => prev + delta * 3)
       
       // Check for player proximity (within 15 units)
-      let _playerDetected = false
+      let _unusedPlayerDetected = false
       if (playerPosition) {
         const distanceToPlayer = currentPosition.distanceTo(playerPosition)
         if (distanceToPlayer < 15) {
-          _playerDetected = true
+          _unusedPlayerDetected = true
           setIsFollowingPlayer(true)
         } else if (distanceToPlayer > 25) {
           // Stop following if player gets too far away
@@ -2406,7 +2406,7 @@ function EnemyPop({ position }: { position: number[] }) {
   }, [])
 
   // Dramatic pop animation
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     if (popRef.current) {
       // Initial dramatic expansion then shrink
       const time = state.clock.elapsedTime
@@ -2536,7 +2536,7 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
   const [_attackTimer, setAttackTimer] = useState(0)
 
   // Dragon AI and movement
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     if (!dragonRef.current || !playerPosition) return
 
     setBobOffset((prev: number) => prev + delta * 2)
@@ -2609,7 +2609,7 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     onPositionUpdate(newPosition)
 
     // Update visual position
-    dragonRef.current.position.set(...newPosition)
+    dragonRef.current.position.copy(newPosition)
     
     // Handle dragon orientation based on phase
     if (dragon.phase === 'dying') {

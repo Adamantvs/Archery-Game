@@ -115,6 +115,7 @@ Refined dragon entrance and death animations
 - ✅ All core features working: dragon boss, rocket projectiles, enemy spawning, collision detection
 - ✅ Implemented dramatic dragon falling death animation
 - ✅ **TypeScript Code Quality**: Added proper type annotations to all setState calls with arrow functions
+- ✅ **useFrame Parameter Fix**: Changed useFrame parameter from `_state` to `state` for functions that use `state.clock`
 
 ## Dragon Death Animation Features
 - **Falling Physics**: Dragon falls with gravity (speed 12) when health reaches 0
