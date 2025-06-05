@@ -50,16 +50,16 @@ export default function ArcheryGame() {
         <div className="absolute top-4 right-4 space-y-3">
           {/* Score Display */}
           <div className="bg-black bg-opacity-70 p-3 rounded-lg">
-            <div className="text-white text-sm font-bold mb-1">SCORE</div>
+            <div className="text-white text-sm font-bold mb-1 font-medieval">SCORE</div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-400">{score}</div>
-              <div className="text-xs text-gray-300">Enemy kills: {killCount}/5</div>
+              <div className="text-2xl font-bold text-yellow-400 font-medieval">{score}</div>
+              <div className="text-xs text-gray-300 font-medieval">Enemy kills: {killCount}/5</div>
             </div>
           </div>
           
           {/* Health Bar */}
           <div className="bg-black bg-opacity-70 p-3 rounded-lg">
-            <div className="text-white text-sm font-bold mb-1">HEALTH</div>
+            <div className="text-white text-sm font-bold mb-1 font-medieval">HEALTH</div>
             <div className="w-48 h-4 bg-gray-800 rounded-full overflow-hidden border-2 border-gray-600">
               <div 
                 className={`h-full transition-all duration-300 ${
@@ -69,7 +69,7 @@ export default function ArcheryGame() {
                 style={{ width: `${Math.max(0, playerHealth)}%` }}
               />
             </div>
-            <div className="text-white text-xs mt-1 text-center">{Math.round(playerHealth)}/100</div>
+            <div className="text-white text-xs mt-1 text-center font-medieval">{Math.round(playerHealth)}/100</div>
           </div>
         </div>
 
@@ -85,8 +85,8 @@ export default function ArcheryGame() {
         {showVictoryMessage && !dragonDefeated && (
           <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-50">
             <div className="bg-green-900 bg-opacity-95 p-4 rounded-lg border-4 border-green-500 animate-pulse shadow-2xl">
-              <h2 className="text-2xl font-bold text-green-300 mb-1">🐉 DRAGON SLAIN! 🐉</h2>
-              <p className="text-lg text-white">Victory is yours, brave archer!</p>
+              <h2 className="text-2xl font-bold text-green-300 mb-1 font-medieval-ornate">🐉 DRAGON SLAIN! 🐉</h2>
+              <p className="text-lg text-white font-medieval">Victory is yours, brave archer!</p>
             </div>
           </div>
         )}
@@ -95,7 +95,7 @@ export default function ArcheryGame() {
         {showVictoryMessage && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-none">
             <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-8 py-4 rounded-lg shadow-lg border-4 border-yellow-300">
-              <h1 className="text-4xl font-bold text-center tracking-wide">VICTORY!</h1>
+              <h1 className="text-4xl font-bold text-center tracking-wide font-medieval-ornate">VICTORY!</h1>
             </div>
           </div>
         )}
@@ -104,11 +104,11 @@ export default function ArcheryGame() {
         {showFullVictory && (
           <div className="absolute inset-0 bg-green-900 bg-opacity-90 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
-              <h1 className="text-6xl font-bold mb-6 text-green-300">DRAGON DEFEATED!</h1>
-              <p className="text-xl mb-6">You have slain the mighty dragon and saved the realm!</p>
-              <div className="text-4xl font-bold text-yellow-400 mb-8">Final Score: {score}</div>
+              <h1 className="text-6xl font-bold mb-6 text-green-300 font-medieval-ornate">DRAGON DEFEATED!</h1>
+              <p className="text-xl mb-6 font-medieval">You have slain the mighty dragon and saved the realm!</p>
+              <div className="text-4xl font-bold text-yellow-400 mb-8 font-medieval">Final Score: {score}</div>
               <button 
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl mr-4"
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl mr-4 font-medieval"
                 onClick={() => {
                   // Reset game state for play again
                   setShowVictoryMessage(false)
@@ -124,7 +124,7 @@ export default function ArcheryGame() {
                 Play Again
               </button>
               <button 
-                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-xl"
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-xl font-medieval"
                 onClick={() => setShowFullVictory(false)}
               >
                 Continue Exploring
@@ -137,11 +137,11 @@ export default function ArcheryGame() {
         {playerHealth <= 0 && (
           <div className="absolute inset-0 bg-red-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
-              <h1 className="text-6xl font-bold mb-4 text-red-300">GAME OVER</h1>
-              <p className="text-xl mb-6">You have been defeated by the flying demons!</p>
-              <div className="text-2xl font-bold text-yellow-400 mb-6">Final Score: {score}</div>
+              <h1 className="text-6xl font-bold mb-4 text-red-300 font-medieval-ornate">GAME OVER</h1>
+              <p className="text-xl mb-6 font-medieval">You have been defeated by the flying demons!</p>
+              <div className="text-2xl font-bold text-yellow-400 mb-6 font-medieval">Final Score: {score}</div>
               <button 
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg font-medieval"
                 onClick={() => window.location.reload()}
               >
                 Restart Game
@@ -156,9 +156,9 @@ export default function ArcheryGame() {
         {showDragonWarning && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-50">
             <div className="bg-red-900 bg-opacity-95 p-4 rounded-lg border-4 border-red-500 animate-pulse shadow-2xl">
-              <h2 className="text-3xl font-bold text-red-300 mb-1">🐉 DRAGON BOSS AWAKENED! 🐉</h2>
-              <p className="text-lg text-white">A mighty dragon has emerged to defend the realm!</p>
-              {dragon && <p className="text-md text-yellow-400 mt-1">Health: {dragon.health}/5</p>}
+              <h2 className="text-3xl font-bold text-red-300 mb-1 font-medieval-ornate">🐉 DRAGON BOSS AWAKENED! 🐉</h2>
+              <p className="text-lg text-white font-medieval">A mighty dragon has emerged to defend the realm!</p>
+              {dragon && <p className="text-md text-yellow-400 mt-1 font-medieval">Health: {dragon.health}/5</p>}
             </div>
           </div>
         )}
@@ -166,17 +166,17 @@ export default function ArcheryGame() {
         {/* Instructions */}
         {!isLocked && playerHealth > 0 && (
           <div className="absolute top-4 left-4 text-white bg-black bg-opacity-50 p-4 rounded">
-            <p className="text-sm">Click to lock cursor and start playing</p>
-            <p className="text-xs mt-2">Left Click: Shoot Arrow</p>
-            <p className="text-xs">Right Click: Fire Rocket (2x damage!)</p>
-            <p className="text-xs">Mouse: Aim</p>
-            <p className="text-xs">WASD: Move</p>
-            <p className="text-xs">Spacebar: Jump</p>
-            <p className="text-xs">Hold Shift: Sprint</p>
-            <p className="text-xs mt-2">Shoot the bomb crates and enemies!</p>
-            <p className="text-xs text-yellow-400 mt-2">⚠️ Avoid enemies and explosions - they damage you!</p>
-            <p className="text-xs text-red-400 mt-1">🎯 Kill 5 enemies to face the DRAGON BOSS!</p>
-            <p className="text-xs text-green-400 mt-1">🏆 Defeat the dragon to WIN!</p>
+            <p className="text-sm font-medieval">Click to lock cursor and start playing</p>
+            <p className="text-xs mt-2 font-medieval">Left Click: Shoot Arrow</p>
+            <p className="text-xs font-medieval">Right Click: Fire Rocket (2x damage!)</p>
+            <p className="text-xs font-medieval">Mouse: Aim</p>
+            <p className="text-xs font-medieval">WASD: Move</p>
+            <p className="text-xs font-medieval">Spacebar: Jump</p>
+            <p className="text-xs font-medieval">Hold Shift: Sprint</p>
+            <p className="text-xs mt-2 font-medieval">Shoot the bomb crates and enemies!</p>
+            <p className="text-xs text-yellow-400 mt-2 font-medieval">⚠️ Avoid enemies and explosions - they damage you!</p>
+            <p className="text-xs text-red-400 mt-1 font-medieval">🎯 Kill 5 enemies to face the DRAGON BOSS!</p>
+            <p className="text-xs text-green-400 mt-1 font-medieval">🏆 Defeat the dragon to WIN!</p>
           </div>
         )}
       </div>
@@ -1886,22 +1886,23 @@ function ConfettiPiece({ piece }: { piece: any }) {
 
   useFrame((_state, delta) => {
     if (meshRef.current) {
-      // Apply gravity and update position
+      // Apply slow-motion gravity and update position
+      const slowMotionFactor = 0.3 // Slow motion effect
       const newVelocity = [...currentVelocity]
-      newVelocity[1] -= 9.8 * delta * 2 // Gravity
+      newVelocity[1] -= 9.8 * delta * slowMotionFactor // Slower gravity
 
       const newPosition = [
-        currentPosition[0] + newVelocity[0] * delta,
-        currentPosition[1] + newVelocity[1] * delta,
-        currentPosition[2] + newVelocity[2] * delta
+        currentPosition[0] + newVelocity[0] * delta * slowMotionFactor,
+        currentPosition[1] + newVelocity[1] * delta * slowMotionFactor,
+        currentPosition[2] + newVelocity[2] * delta * slowMotionFactor
       ]
 
-      // Simple bounce when hitting ground
+      // Simple bounce when hitting ground (also slowed)
       if (newPosition[1] <= 0) {
         newPosition[1] = 0
-        newVelocity[1] = Math.abs(newVelocity[1]) * 0.3 // Bounce with energy loss
-        newVelocity[0] *= 0.8 // Friction
-        newVelocity[2] *= 0.8 // Friction
+        newVelocity[1] = Math.abs(newVelocity[1]) * 0.4 // Slightly higher bounce for slow motion
+        newVelocity[0] *= 0.9 // Less friction for better slow motion effect
+        newVelocity[2] *= 0.9 // Less friction for better slow motion effect
       }
 
       setCurrentPosition(newPosition)
@@ -1910,9 +1911,9 @@ function ConfettiPiece({ piece }: { piece: any }) {
       // Update mesh position
       meshRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
       
-      // Add rotation for visual effect
-      meshRef.current.rotation.x += delta * 5
-      meshRef.current.rotation.y += delta * 3
+      // Add slower rotation for dreamy effect
+      meshRef.current.rotation.x += delta * 2
+      meshRef.current.rotation.y += delta * 1.5
     }
   })
 

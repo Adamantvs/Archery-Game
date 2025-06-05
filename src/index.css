@@ -6,7 +6,23 @@
     dark --prefersdark;
 }
 
-/* Custom font family is preserved */
+/* Import medieval fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Uncial+Antiqua&family=MedievalSharp&display=swap');
+
+/* Medieval font family hierarchy */
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+}
+
+/* Medieval font classes */
+.font-medieval {
+  font-family: 'Cinzel', 'Times New Roman', serif;
+}
+
+.font-medieval-ornate {
+  font-family: 'Uncial Antiqua', 'Cinzel', serif;
+}
+
+.font-medieval-sharp {
+  font-family: 'MedievalSharp', 'Cinzel', serif;
 }
