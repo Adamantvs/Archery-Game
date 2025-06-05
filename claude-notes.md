@@ -125,8 +125,16 @@ Refined dragon entrance and death animations
 - **Realistic Physics**: Confetti pieces have gravity, bounce on ground, and scatter naturally
 - **Performance Optimized**: Simple box geometry with rotation animation, 8-second cleanup
 - **5 Vibrant Colors**: Pink, green, gold, orange, purple for maximum celebration effect
-- **Better Victory Timing**: Victory message appears after 1 second for immediate satisfaction
+- **Two-Stage Victory**: Immediate notification + delayed full screen for optimal UX
 - **Redder Dragon Sky**: Enhanced atmospheric effects with increased turbidity and lower sun position
+
+## Two-Stage Victory Sequence
+- **STAGE 1 - Immediate**: "VICTORY!" appears instantly at top center (golden, non-blocking)
+- **STAGE 2 - Delayed**: Full victory screen appears after exactly 10 seconds with play options
+- **Non-Interrupting**: Stage 1 allows continued movement, shooting, and exploration
+- **Play Again Option**: Reset all game state (dragon, score, health, confetti) for fresh start
+- **Continue Exploring**: Dismiss full victory screen and keep playing in the world
+- **Perfect Timing**: Immediate celebration without disrupting gameplay flow
 
 ## Dragon Death Optimization
 - **Prevented Dismantling**: Reduced rotation speeds from 0.8-1.0 to 0.2-0.3 and removed Z-axis rotation

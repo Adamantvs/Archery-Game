@@ -15,6 +15,7 @@ export default function ArcheryGame() {
   const [showDragonWarning, setShowDragonWarning] = useState(false)
   const [dragonDefeated, setDragonDefeated] = useState(false)
   const [showVictoryMessage, setShowVictoryMessage] = useState(false)
+  const [showFullVictory, setShowFullVictory] = useState(false)
   const [_dragonEntering, setDragonEntering] = useState(false)
   const [confetti, setConfetti] = useState<any[]>([])
 
@@ -39,6 +40,7 @@ export default function ArcheryGame() {
           _setDragonEntering={setDragonEntering}
           confetti={confetti}
           setConfetti={setConfetti}
+          setShowFullVictory={setShowFullVictory}
         />
       </Canvas>
 
@@ -89,18 +91,43 @@ export default function ArcheryGame() {
           </div>
         )}
 
-        {/* Full Victory Screen */}
-        {dragonDefeated && (
-          <div className="absolute inset-0 bg-green-900 bg-opacity-80 flex items-center justify-center pointer-events-auto">
+        {/* STAGE 1: Immediate Victory Notification (Top of Screen) */}
+        {showVictoryMessage && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-none">
+            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-8 py-4 rounded-lg shadow-lg border-4 border-yellow-300">
+              <h1 className="text-4xl font-bold text-center tracking-wide">VICTORY!</h1>
+            </div>
+          </div>
+        )}
+
+        {/* STAGE 2: Full Victory Screen (After 10 seconds) */}
+        {showFullVictory && (
+          <div className="absolute inset-0 bg-green-900 bg-opacity-90 flex items-center justify-center pointer-events-auto">
             <div className="text-center text-white">
-              <h1 className="text-6xl font-bold mb-4 text-green-300">VICTORY!</h1>
+              <h1 className="text-6xl font-bold mb-6 text-green-300">DRAGON DEFEATED!</h1>
               <p className="text-xl mb-6">You have slain the mighty dragon and saved the realm!</p>
-              <div className="text-4xl font-bold text-yellow-400 mb-6">Final Score: {score}</div>
+              <div className="text-4xl font-bold text-yellow-400 mb-8">Final Score: {score}</div>
               <button 
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg"
-                onClick={() => window.location.reload()}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl mr-4"
+                onClick={() => {
+                  // Reset game state for play again
+                  setShowVictoryMessage(false)
+                  setShowFullVictory(false)
+                  setDragonDefeated(false)
+                  setDragonSpawned(false)
+                  setKillCount(0)
+                  setScore(0)
+                  setPlayerHealth(100)
+                  setConfetti([])
+                }}
               >
                 Play Again
+              </button>
+              <button 
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-8 rounded-lg text-xl"
+                onClick={() => setShowFullVictory(false)}
+              >
+                Continue Exploring
               </button>
             </div>
           </div>
@@ -157,7 +184,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory }: { 
   setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
   setPlayerHealth: Dispatch<SetStateAction<number>>, 
@@ -174,7 +201,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   setShowVictoryMessage: Dispatch<SetStateAction<boolean>>,
   _setDragonEntering: Dispatch<SetStateAction<boolean>>,
   confetti: any[],
-  setConfetti: Dispatch<SetStateAction<any[]>>
+  setConfetti: Dispatch<SetStateAction<any[]>>,
+  setShowFullVictory: Dispatch<SetStateAction<boolean>>
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -618,15 +646,18 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
                 }))
               ])
               
-              // Remove dragon immediately and show victory
+              // Remove dragon immediately and start two-stage victory
               setDragon(null)
               setScore((prev: number) => prev + 10) // Big score bonus for dragon
               
-              // Show victory after short delay
+              // STAGE 1: Immediate victory notification (non-blocking)
+              setShowVictoryMessage(true)
+              setDragonDefeated(true)
+              
+              // STAGE 2: Full victory screen after exactly 10 seconds
               setTimeout(() => {
-                setShowVictoryMessage(true)
-                setDragonDefeated(true)
-              }, 1000)
+                setShowFullVictory(true)
+              }, 10000)
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
@@ -897,11 +928,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               setDragon(null)
               setScore((prev: number) => prev + 20) // Bigger bonus for rocket dragon kill
               
-              // Show victory after short delay
+              // STAGE 1: Immediate victory notification (non-blocking)
+              setShowVictoryMessage(true)
+              setDragonDefeated(true)
+              
+              // STAGE 2: Full victory screen after exactly 10 seconds
               setTimeout(() => {
-                setShowVictoryMessage(true)
-                setDragonDefeated(true)
-              }, 1000)
+                setShowFullVictory(true)
+              }, 10000)
               
             } else {
               setDragon((prev: any) => ({ ...prev, health: newHealth }))
