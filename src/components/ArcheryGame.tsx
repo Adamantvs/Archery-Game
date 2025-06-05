@@ -5,6 +5,33 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { PointerLockControls, Sky } from "@react-three/drei"
 import * as THREE from "three"
 
+// Pre-create geometries and materials to avoid recreating them
+const GEOMETRIES = {
+  sphere: new THREE.SphereGeometry(1, 8, 8),
+  sphereHQ: new THREE.SphereGeometry(1, 16, 16),
+  box: new THREE.BoxGeometry(1, 1, 1),
+  cylinder: new THREE.CylinderGeometry(1, 1, 1),
+  cone: new THREE.ConeGeometry(1, 1),
+  circle: new THREE.CircleGeometry(1, 16),
+  torus: new THREE.TorusGeometry(1, 0.1, 8, 16),
+  plane: new THREE.PlaneGeometry(200, 200)
+}
+
+const MATERIALS = {
+  wood: new THREE.MeshStandardMaterial({ color: "#8B4513", roughness: 0.9 }),
+  woodDark: new THREE.MeshStandardMaterial({ color: "#654321", roughness: 0.8 }),
+  metal: new THREE.MeshStandardMaterial({ color: "#2F2F2F", metalness: 0.8, roughness: 0.2 }),
+  ground: new THREE.MeshStandardMaterial({ color: "#228B22", roughness: 0.8, metalness: 0.1 }),
+  leaves: new THREE.MeshStandardMaterial({ color: "#228B22", roughness: 0.7 }),
+  leavesLight: new THREE.MeshStandardMaterial({ color: "#32CD32", roughness: 0.7 }),
+  castle: new THREE.MeshStandardMaterial({ color: "#696969", roughness: 0.9 }),
+  roof: new THREE.MeshStandardMaterial({ color: "#8B0000", roughness: 0.7 }),
+  enemyBody: new THREE.MeshStandardMaterial({ color: "#8B4513", roughness: 0.8 }),
+  enemyCap: new THREE.MeshStandardMaterial({ color: "#D2691E", roughness: 0.7 }),
+  white: new THREE.MeshStandardMaterial({ color: "#FFFFFF" }),
+  black: new THREE.MeshStandardMaterial({ color: "#000000" })
+}
+
 function DynamicSky({ dragon, victoryTransition }: { dragon: any, victoryTransition: boolean }) {
   const [skyTransition, setSkyTransition] = useState(0)
   
@@ -104,7 +131,12 @@ export default function ArcheryGame() {
 
   return (
     <div className="w-full h-screen relative">
-      <Canvas shadows camera={{ fov: 75, near: 0.1, far: 1000, position: [0, 2, 5] }}>
+      <Canvas 
+        shadows 
+        camera={{ fov: 75, near: 0.1, far: 1000, position: [0, 2, 5] }}
+        gl={{ antialias: false, powerPreference: "high-performance" }}
+        dpr={Math.min(window.devicePixelRatio, 2)}
+      >
         <Game 
           setIsLocked={setIsLocked} 
           playerHealth={playerHealth} 
@@ -508,7 +540,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     }
   }, [resetGameTrigger])
 
-  const handleShoot = () => {
+  const handleShoot = useCallback(() => {
     if (!controlsRef.current) return
 
     const camera = controlsRef.current.getObject()
@@ -531,7 +563,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     setArrows((prev: any[]) => [...prev, newArrow])
     setBowDrawn(true)
     setTimeout(() => setBowDrawn(false), 200)
-  }
+  }, [])
 
   // Damage player function with cooldown
   const damagePlayer = useCallback((damage: number) => {
@@ -558,10 +590,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       if (playerPosition) {
         enemies.forEach((enemy) => {
           if (enemy.active) {
-            const enemyPos = new THREE.Vector3(...(enemy.currentPosition || enemy.position))
-            const distance = enemyPos.distanceTo(playerPosition)
+            const enemyPos = enemy.currentPosition || enemy.position
+            // Optimized distance calculation - avoid creating Vector3
+            const dx = playerPosition.x - enemyPos[0]
+            const dy = playerPosition.y - enemyPos[1]
+            const dz = playerPosition.z - enemyPos[2]
+            const distanceSq = dx * dx + dy * dy + dz * dz
             
-            if (distance < 1.2) { // Enemy collision radius
+            if (distanceSq < 1.44) { // 1.2 squared - Enemy collision radius
               damagePlayer(10) // 10 damage per hit
             }
           }
@@ -569,10 +605,14 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
 
         // Check fire projectile-player collisions
         fireProjectiles.forEach((fire) => {
-          const firePos = fire.position.clone ? fire.position : new THREE.Vector3(...fire.position)
-          const distance = firePos.distanceTo(playerPosition)
+          const firePos = fire.position.clone ? fire.position : fire.position
+          // Optimized distance calculation
+          const dx = playerPosition.x - (firePos.x || firePos[0])
+          const dy = playerPosition.y - (firePos.y || firePos[1])
+          const dz = playerPosition.z - (firePos.z || firePos[2])
+          const distanceSq = dx * dx + dy * dy + dz * dz
           
-          if (distance < 1.0) { // Fire projectile collision radius
+          if (distanceSq < 1.0) { // 1.0 squared - Fire projectile collision radius
             damagePlayer(fire.damage) // Use the fire projectile's damage value
             
             // Create explosion effect at impact
@@ -868,7 +908,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               // Create confetti explosion
               setConfetti((prev: any[]) => [
                 ...prev,
-                ...Array.from({ length: 30 }, (_, i) => ({
+                ...Array.from({ length: 20 }, (_, i) => ({
                   id: Date.now() + i,
                   position: [
                     dragonPosition[0] + (Math.random() - 0.5) * 4,
@@ -1149,7 +1189,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
               // Create confetti explosion
               setConfetti((prev: any[]) => [
                 ...prev,
-                ...Array.from({ length: 40 }, (_, i) => ({
+                ...Array.from({ length: 25 }, (_, i) => ({
                   id: Date.now() + i,
                   position: [
                     dragonPosition[0] + (Math.random() - 0.5) * 4,
@@ -1205,7 +1245,7 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
       setExplosions((prev: any[]) => prev.filter((explosion) => now - explosion.createdAt < explosionDuration))
       setEnemyPops((prev: any[]) => prev.filter((pop) => now - pop.createdAt < popDuration))
       setConfetti((prev: any[]) => prev.filter((piece) => now - piece.createdAt < 8000)) // Confetti lasts 8 seconds
-    }, 250) // More frequent cleanup for better performance
+    }, 500) // Optimized cleanup frequency
 
     return () => clearInterval(interval)
   }, [])
@@ -1337,8 +1377,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
         intensity={1.2}
         color="#FFB366"
         castShadow
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={50}
         shadow-camera-left={-20}
         shadow-camera-right={20}
@@ -1352,8 +1392,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
         intensity={0.8}
         color="#4A90E2"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={30}
         shadow-camera-left={-15}
         shadow-camera-right={15}
@@ -2037,9 +2077,9 @@ function Arrow({ arrow, onUpdate, onRemove }: { arrow: any; onUpdate: (arrow: an
     const newPosition = arrow.position.clone()
     newPosition.add(newVelocity.clone().multiplyScalar(delta))
 
-    // Update trail (limit to 15 points)
+    // Update trail (limit to 8 points for performance)
     const newTrail = [...arrow.trail, newPosition.clone()]
-    if (newTrail.length > 15) {
+    if (newTrail.length > 8) {
       newTrail.shift()
     }
 
@@ -2249,8 +2289,8 @@ function FireProjectile({ fire, onUpdate, onRemove, playerPosition }: { fire: an
   return (
     <group ref={groupRef} position={fire.position}>
       {/* Fire ball core */}
-      <mesh>
-        <sphereGeometry args={[0.3, 8, 8]} />
+      <mesh scale={[0.3, 0.3, 0.3]}>
+        <primitive object={GEOMETRIES.sphere} attach="geometry" />
         <meshStandardMaterial 
           color="#FF4500" 
           emissive="#FF4500"
@@ -2261,8 +2301,8 @@ function FireProjectile({ fire, onUpdate, onRemove, playerPosition }: { fire: an
       </mesh>
       
       {/* Fire glow effect */}
-      <mesh scale={[1.5, 1.5, 1.5]}>
-        <sphereGeometry args={[0.3, 8, 8]} />
+      <mesh scale={[0.45, 0.45, 0.45]}>
+        <primitive object={GEOMETRIES.sphere} attach="geometry" />
         <meshStandardMaterial 
           color="#FFD700" 
           emissive="#FFD700"
@@ -3240,8 +3280,8 @@ function EnemyPop({ position }: { position: number[] }) {
 
   // Initialize particles
   useEffect(() => {
-    const initialParticles = Array.from({ length: 12 }, (_, i) => {
-      const angle = (i / 12) * Math.PI * 2
+    const initialParticles = Array.from({ length: 8 }, (_, i) => {
+      const angle = (i / 8) * Math.PI * 2
       const speed = 2 + Math.random() * 3
       return {
         id: i,
