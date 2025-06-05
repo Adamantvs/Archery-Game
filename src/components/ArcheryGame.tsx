@@ -1634,7 +1634,6 @@ function Player() {
   const lastSpacePress = useRef(0)
   const spaceClickCount = useRef(0)
   const isBoosterActive = useRef(false)
-  const maxBoosterHeight = useRef(12) // Maximum height with booster
   const boosterStartTime = useRef(0) // Track when booster started
   const maxBoosterDuration = 1000 // 1 second in milliseconds
   const secondClickHeld = useRef(false) // Track if second click is being held
@@ -1716,14 +1715,14 @@ function Player() {
       const currentTime = Date.now()
       const timeSinceStart = currentTime - boosterStartTime.current
       
-      // Check if max duration exceeded, spacebar released, or height exceeded
-      if (timeSinceStart >= maxBoosterDuration || !secondClickHeld.current || camera.position.y >= maxBoosterHeight.current) {
+      // Check if max duration exceeded or spacebar released
+      if (timeSinceStart >= maxBoosterDuration || !secondClickHeld.current) {
         isBoosterActive.current = false
         secondClickHeld.current = false
         // Immediately apply gravity to stop upward motion
         jumpVelocity.current = Math.min(jumpVelocity.current, 0) // Stop upward motion completely
       } else {
-        // Apply upward boost force only if below max height
+        // Apply upward boost force
         jumpVelocity.current = boosterForce
         isJumping.current = true
       }
@@ -1743,12 +1742,6 @@ function Player() {
         jumpVelocity.current += gravity * delta
       }
 
-      // Strict height limit enforcement - force player down if they exceed max height
-      if (camera.position.y > maxBoosterHeight.current) {
-        camera.position.y = maxBoosterHeight.current
-        jumpVelocity.current = -5 // Force downward velocity
-        isBoosterActive.current = false // Deactivate booster
-      }
 
       // Land
       if (camera.position.y <= 2) {
