@@ -100,6 +100,7 @@ export default function ArcheryGame() {
   const [confetti, setConfetti] = useState<any[]>([])
   const [damageFlash, setDamageFlash] = useState(0)
   const [victoryTransition, setVictoryTransition] = useState(false)
+  const [resetGameTrigger, setResetGameTrigger] = useState(0)
 
   return (
     <div className="w-full h-screen relative">
@@ -126,6 +127,7 @@ export default function ArcheryGame() {
           setDamageFlash={setDamageFlash}
           setVictoryTransition={setVictoryTransition}
           victoryTransition={victoryTransition}
+          resetGameTrigger={resetGameTrigger}
         />
       </Canvas>
 
@@ -230,6 +232,8 @@ export default function ArcheryGame() {
                   setVictoryTransition(false)
                   setDamageFlash(0)
                   setDragon(null)
+                  // Trigger game component reset
+                  setResetGameTrigger(prev => prev + 1)
                 }}
               >
                 🏹 Play Again
@@ -289,7 +293,7 @@ export default function ArcheryGame() {
   )
 }
 
-function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory, setDamageFlash, setVictoryTransition, victoryTransition }: { 
+function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore, setScore, killCount, setKillCount, dragon, setDragon, dragonSpawned, setDragonSpawned, setShowDragonWarning, setDragonDefeated, setShowVictoryMessage, _setDragonEntering: _unusedSetDragonEntering, confetti, setConfetti, setShowFullVictory, setDamageFlash, setVictoryTransition, victoryTransition, resetGameTrigger }: { 
   setIsLocked: Dispatch<SetStateAction<boolean>>, 
   playerHealth: number, 
   setPlayerHealth: Dispatch<SetStateAction<number>>, 
@@ -310,7 +314,8 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
   setShowFullVictory: Dispatch<SetStateAction<boolean>>,
   setDamageFlash: Dispatch<SetStateAction<number>>,
   setVictoryTransition: Dispatch<SetStateAction<boolean>>,
-  victoryTransition: boolean
+  victoryTransition: boolean,
+  resetGameTrigger: number
 }) {
   const [arrows, setArrows] = useState<any[]>([])
   const [rockets, setRockets] = useState<any[]>([])
@@ -406,6 +411,98 @@ function Game({ setIsLocked, playerHealth, setPlayerHealth, _score: _unusedScore
     }))
     setEnemies(initialEnemies)
   }, [])
+
+  // Reset game state when Play Again is clicked
+  useEffect(() => {
+    if (resetGameTrigger > 0) {
+      // Reset all Game component states to initial values
+      setArrows([])
+      setRockets([])
+      setBowDrawn(false)
+      setExplosions([])
+      setEnemyPops([])
+      setLastDamageTime(0)
+      
+      // Reset bombs to initial state
+      const initialBombs = [
+        { id: 1, position: [8, 1.5, -10], active: true },
+        { id: 2, position: [-6, 1.5, -8], active: true },
+        { id: 3, position: [12, 1.5, -15], active: true },
+        { id: 4, position: [-10, 1.5, -12], active: true },
+        { id: 5, position: [0, 1.5, -20], active: true },
+        { id: 6, position: [-15, 1.5, -25], active: true },
+        { id: 7, position: [15, 1.5, -25], active: true },
+        { id: 8, position: [-20, 1.5, -35], active: true },
+        { id: 9, position: [20, 1.5, -35], active: true },
+        { id: 10, position: [0, 1.5, -40], active: true },
+        { id: 11, position: [-25, 1.5, -45], active: true },
+        { id: 12, position: [25, 1.5, -45], active: true },
+        { id: 13, position: [10, 1.5, -50], active: true },
+        { id: 14, position: [-10, 1.5, -50], active: true },
+      ]
+      setBombs(initialBombs)
+      
+      // Reset enemies to initial positions
+      const checkSpawnCollision = (x: number, z: number) => {
+        const mainTowerDistance = Math.sqrt(x * x + (z + 30) * (z + 30))
+        if (mainTowerDistance < 3.5) return true
+        const leftTowerDistance = Math.sqrt((x + 6) * (x + 6) + (z + 30) * (z + 30))
+        if (leftTowerDistance < 2.5) return true
+        const rightTowerDistance = Math.sqrt((x - 6) * (x - 6) + (z + 30) * (z + 30))
+        if (rightTowerDistance < 2.5) return true
+        if (x >= -7.5 && x <= 7.5 && z >= -28 && z <= -26) return true
+        return false
+      }
+
+      const safeSpawnPositions = []
+      const attemptPositions = [
+        [-15, 0.5, -20], [15, 0.5, -20], [0, 0.5, -45],
+        [-20, 0.5, -35], [20, 0.5, -35], [-25, 0.5, -50],
+        [25, 0.5, -50], [0, 0.5, -60], [-10, 0.5, -55]
+      ]
+      
+      for (const pos of attemptPositions) {
+        if (!checkSpawnCollision(pos[0], pos[2]) && safeSpawnPositions.length < 5) {
+          safeSpawnPositions.push(pos)
+        }
+      }
+      
+      while (safeSpawnPositions.length < 5) {
+        let validSpawn = false
+        let attempts = 0
+        while (!validSpawn && attempts < 20) {
+          const x = (Math.random() - 0.5) * 80
+          const z = -30 + (Math.random() - 0.5) * 60
+          if (!checkSpawnCollision(x, z)) {
+            safeSpawnPositions.push([x, 0.5, z])
+            validSpawn = true
+          }
+          attempts++
+        }
+        if (!validSpawn) {
+          const fallbacks = [[30, 0.5, -60], [-30, 0.5, -60], [0, 0.5, -80]]
+          safeSpawnPositions.push(fallbacks[safeSpawnPositions.length % fallbacks.length])
+        }
+      }
+
+      const initialEnemies = safeSpawnPositions.slice(0, 5).map((pos, index) => ({
+        id: index + 1,
+        position: pos,
+        active: true,
+        targetPosition: pos,
+        moveSpeed: 5 + Math.random() * 3,
+        currentPosition: pos
+      }))
+      setEnemies(initialEnemies)
+      
+      // Reset player position by resetting the controls
+      if (controlsRef.current) {
+        const camera = controlsRef.current.getObject()
+        camera.position.set(0, 2, 5)
+        camera.rotation.set(0, 0, 0)
+      }
+    }
+  }, [resetGameTrigger])
 
   const handleShoot = () => {
     if (!controlsRef.current) return
