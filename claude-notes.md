@@ -11,6 +11,7 @@
 - Fixed booster system: proper double-click detection + hold-to-maintain behavior
 - Removed height limit for smooth booster experience
 - Added dragon fire attack system with glowing projectiles and collision detection
+- Enhanced dragon attacks: 3 tracking fire projectiles with spread pattern
 
 ## Progress - Dragon Boss Implementation
 - ✅ Added kill counter tracking system to monitor enemy defeats

@@ -3396,18 +3396,31 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate, onFireAttack }: 
     if (dragon.phase === 'circling' && attackTimer > 3) {
       const dragonPos = new THREE.Vector3(...currentPosition)
       
-      // Create 3 fire projectiles with slight spread and tracking behavior
+      // Create 3 fire projectiles in triangle formation with tracking behavior
       for (let i = 0; i < 3; i++) {
         // Calculate base direction to player
         const direction = new THREE.Vector3()
         direction.subVectors(playerPosition, dragonPos)
         direction.normalize()
         
-        // Add spread to each projectile
-        const spreadAngle = (i - 1) * 0.3 // -0.3, 0, +0.3 radians spread
-        const spreadDirection = direction.clone()
-        spreadDirection.x += Math.sin(spreadAngle) * 0.5
-        spreadDirection.z += Math.cos(spreadAngle) * 0.5
+        // Triangle formation: top, bottom-left, bottom-right
+        let spreadDirection = direction.clone()
+        if (i === 0) {
+          // Top projectile - slightly upward
+          spreadDirection.y += 0.3
+        } else if (i === 1) {
+          // Bottom-left projectile
+          const angle = -Math.PI / 6 // -30 degrees
+          spreadDirection.x += Math.sin(angle) * 0.7
+          spreadDirection.z += Math.cos(angle) * 0.7
+          spreadDirection.y -= 0.2
+        } else if (i === 2) {
+          // Bottom-right projectile  
+          const angle = Math.PI / 6 // +30 degrees
+          spreadDirection.x += Math.sin(angle) * 0.7
+          spreadDirection.z += Math.cos(angle) * 0.7
+          spreadDirection.y -= 0.2
+        }
         spreadDirection.normalize()
 
         const fireProjectile = {
@@ -3417,7 +3430,7 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate, onFireAttack }: 
           damage: 20, // Reduced damage since there are 3 projectiles
           age: 0,
           isTracking: true, // Enable tracking behavior
-          trackingStrength: 0.3 // How much it tracks (0 = straight line, 1 = full tracking)
+          trackingStrength: 0.5 // Increased tracking strength for more challenge
         }
 
         onFireAttack(fireProjectile)
