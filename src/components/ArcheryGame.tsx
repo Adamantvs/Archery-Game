@@ -1333,7 +1333,6 @@ function Explosion({ position }: { position: number[] }) {
 
 function Player() {
   const { camera } = useThree()
-  const _unusedVelocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
   const keys = useRef<Record<string, boolean>>({})
   const isJumping = useRef(false)
@@ -2049,11 +2048,9 @@ function Enemy({ position, enemy, playerPosition, onPositionUpdate }: { position
       setBobOffset((prev: number) => prev + delta * 3)
       
       // Check for player proximity (within 15 units)
-      let _unusedPlayerDetected = false
       if (playerPosition) {
         const distanceToPlayer = currentPosition.distanceTo(playerPosition)
         if (distanceToPlayer < 15) {
-          _unusedPlayerDetected = true
           setIsFollowingPlayer(true)
         } else if (distanceToPlayer > 25) {
           // Stop following if player gets too far away
@@ -2609,7 +2606,7 @@ function DragonBoss({ dragon, playerPosition, onPositionUpdate }: { dragon: any,
     onPositionUpdate(newPosition)
 
     // Update visual position
-    dragonRef.current.position.copy(newPosition)
+    dragonRef.current.position.set(newPosition[0], newPosition[1], newPosition[2])
     
     // Handle dragon orientation based on phase
     if (dragon.phase === 'dying') {
