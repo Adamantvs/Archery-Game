@@ -1718,15 +1718,18 @@ function Player({ boosterFuel, setBoosterFuel }: { boosterFuel: number, setBoost
 
     // Booster Jump Logic
     if (isBoosterActive.current && boosterFuel > 0 && camera.position.y < maxBoosterHeight.current) {
+      // Calculate new fuel value
+      const newFuelValue = Math.max(0, boosterFuel - boosterFuelDrain * delta)
+      
       // Consume fuel while boosting
-      setBoosterFuel(prev => Math.max(0, prev - boosterFuelDrain * delta))
+      setBoosterFuel(newFuelValue)
       
       // Apply upward boost force
       jumpVelocity.current = boosterForce
       isJumping.current = true
       
       // Deactivate booster if fuel depleted or max height reached
-      if (boosterFuel <= 0 || camera.position.y >= maxBoosterHeight.current) {
+      if (newFuelValue <= 0 || camera.position.y >= maxBoosterHeight.current) {
         isBoosterActive.current = false
       }
     }
